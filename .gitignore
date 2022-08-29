@@ -1,0 +1,8 @@
+.log
+*.txt
+**/__pycache__
+*.ipynb
+*.csv
+*.json
+*.vot
+*.done
