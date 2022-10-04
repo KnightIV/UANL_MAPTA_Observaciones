@@ -51,6 +51,7 @@ def groupBySimbadCategories():
 		if not os.path.exists(join(SIMBAD_VOT_RESULTS, d, ".done")):
 			print(f"Results not yet finished for {d}")
 			continue
+
 		categoriesSeen = __processDirTables(join(SIMBAD_VOT_RESULTS, d))
 		with open(jsonResultFileName, "w+") as jsonFile:
 			json.dump(categoriesSeen, jsonFile)

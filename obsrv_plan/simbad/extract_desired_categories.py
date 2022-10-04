@@ -17,6 +17,7 @@ def __exportCategoryResults(categoriesSeen: dict):
 		jsonResultFilePath = join(desiredCategoriesDir, f"{category.replace('*', '_star')}.json")
 		with open(jsonResultFilePath, "w+") as jsonFile:
 			json.dump(categoriesSeen[category], jsonFile)
+			print(f"Wrote {category} results to {jsonResultFilePath}")
 
 def __extractCategories(filePath: str, includeCategories: set[str] | None) -> dict:
 	print(f"Extracting {includeCategories} from {filePath}")
@@ -45,7 +46,7 @@ def __checkSimbadCategoriesSeen(desiredCategories: set[str] | None):
 
 def simbadCategoriesHistogram():
 	histogram = {key:len(cats) for (key, cats) in __checkSimbadCategoriesSeen(None).items()}
-	jsonResultFilePath = join(__categoriesResultDir(), "histogram.json")
+	jsonResultFilePath = join(__categoriesResultDir(), "categoriesHistogram.json")
 	with open(jsonResultFilePath, "w+") as jsonFile:
 		json.dump(histogram, jsonFile)
 

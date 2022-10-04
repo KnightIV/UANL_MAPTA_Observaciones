@@ -69,7 +69,7 @@ def gaiaObservableTargets():
 	for _, df_i in enumerate(np.array_split(obsv_targets, 10)):
 		min_dec = df_i.iloc[0]['dec']
 		max_dec = df_i.iloc[-1]['dec']
-		output_file_path = f"{result_dir_path}\\dec_{floor(min_dec)}_{ceil(max_dec)}.csv"
+		output_file_path = os.path.join(result_dir_path, f"dec_{floor(min_dec)}_{ceil(max_dec)}.csv")
 		df_i.to_csv(output_file_path)
 		print(f"Results output to {output_file_path}")
 	print(obsv_targets.head())
