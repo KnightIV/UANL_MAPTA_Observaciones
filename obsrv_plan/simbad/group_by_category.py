@@ -18,6 +18,7 @@ def __processDirTables(simbadVotDir: str):
 				continue
 			
 			vot: None
+			sourceId = votFile.split('_')[0]
 			with io.BytesIO() as resultStream:
 				with open(join(simbadVotDir, votFile), "r") as votFileContents:
 					line = __cleanLine(votFileContents.readline())
@@ -33,7 +34,8 @@ def __processDirTables(simbadVotDir: str):
 				starRecord = {
 					"ra"	: starCandidate[4],
 					"dec"	: starCandidate[5],
-					"id"	: starId
+					"id"	: starId,
+					"gaia_sourceId": sourceId
 				}
 				sameTypeSeen.append(starRecord)
 				categoriesSeen[starType] = sameTypeSeen

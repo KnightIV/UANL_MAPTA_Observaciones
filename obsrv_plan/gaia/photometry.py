@@ -1,4 +1,3 @@
-from cProfile import label
 import modin.pandas as pd
 import matplotlib.pyplot as plt
 

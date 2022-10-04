@@ -9,10 +9,10 @@ from os.path import join, exists
 from time import sleep
 import csv, requests
 
-def __genSimbadVotFilePath(simbadResultDir, ra, dec):
-	return join(simbadResultDir, f"{ra} {dec}.vot")
+def __genSimbadVotFilePath(simbadResultDir, sourceId, ra, dec):
+	return join(simbadResultDir, f"{sourceId}_{ra} {dec}.vot")
 
-def __querySimbad(simbadResultDir, ra, dec):
+def __querySimbad(simbadResultDir, sourceId, ra, dec):
 	SIMBAD_QUERY_URL_TEMPLATE = "http://simbad.u-strasbg.fr/simbad/sim-coo"
 	
 	coordParam = f"{ra} {dec}"
@@ -24,27 +24,31 @@ def __querySimbad(simbadResultDir, ra, dec):
 	}
 	result = requests.get(url=SIMBAD_QUERY_URL_TEMPLATE, params=params)
 	print(f"Queried {result.url}")
-	with open(__genSimbadVotFilePath(simbadResultDir, ra, dec), "w+") as simbadResultFile:
+	with open(__genSimbadVotFilePath(simbadResultDir, sourceId, ra, dec), "w+") as simbadResultFile:
 		simbadResultFile.write(str(result.content))
-		print(f"Wrote intermediate SIMBAD table to {simbadResultFile}")
+		# print(f"Wrote intermediate SIMBAD table to {simbadResultFile}")
 
 def __processSources(simbadResultDir, starRows):
 	RA_PROP = "j2000_ra_prop"
 	DEC_PROP = "j2000_dec_prop"
+	SOURCE_ID_PROP = "source_id"
 
 	RA_COL_POS 	= -1
 	DEC_COL_POS	= -1
+	SOURCE_ID_COL_POS = -1
 	fileObjCount = 0
 	for star in starRows:
 		if fileObjCount == 0:
 			RA_COL_POS = star.index(RA_PROP)
 			DEC_COL_POS = star.index(DEC_PROP)
+			SOURCE_ID_COL_POS = star.index(SOURCE_ID_PROP)
 		else:
 			ra = star[RA_COL_POS]
 			dec = star[DEC_COL_POS]
+			sourceId = star[SOURCE_ID_COL_POS]
 
-			if not exists(__genSimbadVotFilePath(simbadResultDir, ra, dec)):
-				__querySimbad(simbadResultDir, ra, dec)
+			if not exists(__genSimbadVotFilePath(simbadResultDir, sourceId, ra, dec)):
+				__querySimbad(simbadResultDir, sourceId, ra, dec)
 			else:
 				print(f"Skipping SIMBAD query for ({ra} {dec}) coordinate.")
 		fileObjCount += 1
