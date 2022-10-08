@@ -7,7 +7,7 @@ from obsrv_plan.decorators.static_decorator import static_vars
 
 import os
 import numpy as np
-import pandas as pd
+import modin.pandas as pd
 import astropy.units as u
 from math import ceil, floor
 from datetime import timedelta
@@ -19,11 +19,9 @@ from astropy.time import Time, TimeDelta
 @static_vars(obsv=Observer(longitude=-99.895328*u.deg, latitude=24.75521 * u.deg, 
 						elevation=2400*u.m, name="Iturbide", timezone=TIMEZONE))
 def __is_observable(ra, dec, g_mag):
-	# ITURBIDE_OBSV = Observer(longitude=-99.895328*u.deg, latitude=24.75521 * u.deg, 
-	# 					elevation=2400*u.m, name="Iturbide", timezone=TIMEZONE)
 	ITURBIDE_OBSV = __is_observable.obsv
 	FMT_STR = "%Y-%m-%dT%H:%M:%S"
-	MER_TOLERANCE = TimeDelta(val=timedelta(hours=3))
+	MER_TOLERANCE = TimeDelta(val=timedelta(hours=4))
 	acceptable_time_range = [(OBSV_START_DATETIME + timedelta(hours=3)).strftime(FMT_STR),
 							 (OBSV_START_DATETIME - timedelta(hours=3)).strftime(FMT_STR)]
 	ideal_mer_time = Time(val=acceptable_time_range,
@@ -35,15 +33,15 @@ def __is_observable(ra, dec, g_mag):
 		time=Time(val=OBSV_START_DATETIME),
 		target=target)
 
-	return (mer_time, ITURBIDE_OBSV.is_night(time=mer_time, horizon=-6 * u.deg) and
-			ITURBIDE_OBSV.target_is_up(target=target, time=mer_time, horizon=-6 * u.deg) and
-			np.any(ideal_mer_time.isclose(other=mer_time, atol=MER_TOLERANCE)) and
-			g_mag <= 16)
+	return (mer_time, 
+			ITURBIDE_OBSV.is_night(time=mer_time, horizon=-6 * u.deg) and
+				ITURBIDE_OBSV.target_is_up(target=target, time=mer_time, horizon=-6 * u.deg) and
+				np.any(ideal_mer_time.isclose(other=mer_time, atol=MER_TOLERANCE)) and
+				g_mag <= 16)
 
 def gaiaObservableTargets():
 	df = pd.read_csv(DATA_FILE_PATH)
 	df = df.assign(can_obsv=lambda _: False, mer_time=lambda _: None)
-	df.head()
 
 	num_rows = len(df)
 	print(f"Rows to process: {num_rows}")
