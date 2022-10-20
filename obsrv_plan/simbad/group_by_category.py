@@ -1,7 +1,11 @@
 from obsrv_plan.general.params import RESULT_DIR, SIMBAD_VOT_RESULTS
-from astropy.io.votable import parse_single_table
+from obsrv_plan.general.log import printToLog
+
+import os, json, io
 from os.path import join
-import os, json, io, datetime
+
+from astropy.io.votable import parse_single_table
+from astropy.coordinates import SkyCoord
 
 def __cleanLine(line):
 	return line.replace("b'", "").replace("\\n'", "").replace("\\n", "\n")
@@ -40,8 +44,7 @@ def __processDirTables(simbadVotDir: str):
 				sameTypeSeen.append(starRecord)
 				categoriesSeen[starType] = sameTypeSeen
 		except Exception as e:
-			with open(".log", "a+") as logFile:
-				logFile.write(f"[{datetime.datetime.now()}] Error in {join(simbadVotDir, votFile)}: {str(e)}\n")
+			printToLog(f"Error in {join(simbadVotDir, votFile)}: {str(e)}")
 	return categoriesSeen
 		
 def groupBySimbadCategories():

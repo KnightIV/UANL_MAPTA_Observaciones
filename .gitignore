@@ -6,3 +6,4 @@
 *.json
 *.vot
 *.done
+/dask-worker-space

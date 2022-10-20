@@ -2,12 +2,16 @@
 SIMBAD HTTP query. Stores VOTable retrieved in individual file in the declination folder it corresponds to.
 """
 
-from obsrv_plan.general.params import RESULT_DIR
+from obsrv_plan.general.params import RESULT_DIR, MAX_PARALLEL
 
-from os import listdir, makedirs
+from os import listdir, makedirs, getpid
 from os.path import join, exists
-from time import sleep
+# from time import sleep
 import csv, requests
+
+from multiprocessing import Pool, Lock
+
+VOT_FILES_LOCK = Lock()
 
 def __genSimbadVotFilePath(simbadResultDir, sourceId, ra, dec):
 	return join(simbadResultDir, f"{sourceId}_{ra} {dec}.vot")
@@ -23,12 +27,14 @@ def __querySimbad(simbadResultDir, sourceId, ra, dec):
 		'output.format': "VOTable"
 	}
 	result = requests.get(url=SIMBAD_QUERY_URL_TEMPLATE, params=params)
-	print(f"Queried {result.url}")
+	# print(f"Queried {result.url}")
 	with open(__genSimbadVotFilePath(simbadResultDir, sourceId, ra, dec), "w+") as simbadResultFile:
 		simbadResultFile.write(str(result.content))
 		# print(f"Wrote intermediate SIMBAD table to {simbadResultFile}")
 
 def __processSources(simbadResultDir, starRows):
+	pid = getpid()
+
 	RA_PROP = "j2000_ra_prop"
 	DEC_PROP = "j2000_dec_prop"
 	SOURCE_ID_PROP = "source_id"
@@ -43,36 +49,77 @@ def __processSources(simbadResultDir, starRows):
 			DEC_COL_POS = star.index(DEC_PROP)
 			SOURCE_ID_COL_POS = star.index(SOURCE_ID_PROP)
 		else:
+			if fileObjCount % 100 == 0:
+				print(f"[{pid}] processed {fileObjCount} objects")
+
 			ra = star[RA_COL_POS]
 			dec = star[DEC_COL_POS]
 			sourceId = star[SOURCE_ID_COL_POS]
 
 			if not exists(__genSimbadVotFilePath(simbadResultDir, sourceId, ra, dec)):
-				__querySimbad(simbadResultDir, sourceId, ra, dec)
+				triesRemaining = 3
+				while True:
+					triesRemaining -= 1
+					try:
+						__querySimbad(simbadResultDir, sourceId, ra, dec)
+						break
+					except: 
+						print(f"[{pid}] Error querying for ({ra}, {dec}). Retrying {triesRemaining} more times.")
+						if triesRemaining == 0:
+							print(f"[{pid}] Out of tries for ({ra}, {dec}). Skipping.")
+							break
 			else:
-				print(f"Skipping SIMBAD query for ({ra} {dec}) coordinate.")
+				print(f"[{pid}] Skipping SIMBAD query for ({ra} {dec}) coordinate.")
 		fileObjCount += 1
 	return fileObjCount
 
-def retrieveSimbadVots():
-	totalObjCount = 0
-	for f in listdir(RESULT_DIR):
-		if f.endswith(".json") or f == "simbad":
-			continue
-		print(f"Cross-checking '{f}' objects in SIMBAD.")
-		fileNameComponents = f.split("_")
-		curProcessing = f"{fileNameComponents[1]}_{fileNameComponents[2].replace('.csv', '')}"
-		simbadResultDir = join(RESULT_DIR, f"simbad/{curProcessing}")
+def __retrieveSimbadVot(f: str):
+	if f.endswith(".json") or f == "simbad" or f == ".log":
+		return
+	
+	pid = getpid()
+	processObjCount = 0
 
+	print(f"[{pid}] Cross-checking '{f}' objects in SIMBAD.")
+	fileNameComponents = f.split("_")
+	curProcessing = f"{fileNameComponents[1]}_{fileNameComponents[2].replace('.csv', '')}"
+	simbadResultDir = join(RESULT_DIR, f"simbad/{curProcessing}")
+
+	with VOT_FILES_LOCK:
 		if not exists(simbadResultDir):
 			makedirs(simbadResultDir)
 		elif exists(join(simbadResultDir, ".done")):
-			print(f"Skipping querying for {curProcessing}")
-		with open(join(RESULT_DIR, f), "r") as csvFile:
-			starRows = csv.reader(csvFile)
-			totalObjCount += __processSources(simbadResultDir, starRows)
-		with open(join(simbadResultDir, ".done"), "a") : pass
-		sleep(2)
+			print(f"[{pid}] Skipping querying for {curProcessing}")
+			return
+
+	with open(join(RESULT_DIR, f), "r") as csvFile:
+		starRows = csv.reader(csvFile)
+		processObjCount += __processSources(simbadResultDir, starRows)
+	with open(join(simbadResultDir, ".done"), "a") : pass # Only used to create file to signal process finished
+
+	return processObjCount
+
+def retrieveSimbadVots():
+	totalObjCount = 0
+	with Pool(MAX_PARALLEL) as p:
+		totalObjCount = sum(p.map(__retrieveSimbadVot, listdir(RESULT_DIR)))
+	# for f in listdir(RESULT_DIR):
+		# if f.endswith(".json") or f == "simbad":
+		# 	continue
+		# print(f"Cross-checking '{f}' objects in SIMBAD.")
+		# fileNameComponents = f.split("_")
+		# curProcessing = f"{fileNameComponents[1]}_{fileNameComponents[2].replace('.csv', '')}"
+		# simbadResultDir = join(RESULT_DIR, f"simbad/{curProcessing}")
+
+		# if not exists(simbadResultDir):
+		# 	makedirs(simbadResultDir)
+		# elif exists(join(simbadResultDir, ".done")):
+		# 	print(f"Skipping querying for {curProcessing}")
+		# with open(join(RESULT_DIR, f), "r") as csvFile:
+		# 	starRows = csv.reader(csvFile)
+		# 	totalObjCount += __processSources(simbadResultDir, starRows)
+		# with open(join(simbadResultDir, ".done"), "a") : pass
+		# sleep(2)
 
 	print(f"Cross-matched {totalObjCount} objects with SIMBAD.")
 

@@ -52,7 +52,10 @@ def simbadCategoriesHistogram():
 
 def retrieveDesiredCategories():
 	desiredCategories = [
-		"CataclyV*_Candidate"
+		"CataclyV*_Candidate",
+		"CataclyV*",
+		"EclBin",
+		"EclBin_Candidate"
 	]
 	__exportCategoryResults(__checkSimbadCategoriesSeen(desiredCategories))
 
