@@ -103,23 +103,6 @@ def retrieveSimbadVots():
 	totalObjCount = 0
 	with Pool(MAX_PARALLEL) as p:
 		totalObjCount = sum(p.map(__retrieveSimbadVot, listdir(RESULT_DIR)))
-	# for f in listdir(RESULT_DIR):
-		# if f.endswith(".json") or f == "simbad":
-		# 	continue
-		# print(f"Cross-checking '{f}' objects in SIMBAD.")
-		# fileNameComponents = f.split("_")
-		# curProcessing = f"{fileNameComponents[1]}_{fileNameComponents[2].replace('.csv', '')}"
-		# simbadResultDir = join(RESULT_DIR, f"simbad/{curProcessing}")
-
-		# if not exists(simbadResultDir):
-		# 	makedirs(simbadResultDir)
-		# elif exists(join(simbadResultDir, ".done")):
-		# 	print(f"Skipping querying for {curProcessing}")
-		# with open(join(RESULT_DIR, f), "r") as csvFile:
-		# 	starRows = csv.reader(csvFile)
-		# 	totalObjCount += __processSources(simbadResultDir, starRows)
-		# with open(join(simbadResultDir, ".done"), "a") : pass
-		# sleep(2)
 
 	print(f"Cross-matched {totalObjCount} objects with SIMBAD.")
 
