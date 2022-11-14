@@ -18,6 +18,9 @@ def plotBand(source_id, vals, axsRow):
 		filteredBand = vals[vals['band'] == band]
 		axsRow[0].scatter(filteredBand['time'], filteredBand['mag'], label=f"{band}", color=BAND_COLORS[band])
 		axsRow[1].scatter(filteredBand['time'], filteredBand['flux'], label=f"{band}", color=BAND_COLORS[band])
+		
+		axsRow[0].set_xlabel("BJD - 2455197.5 Days")
+		axsRow[1].set_xlabel("BJD - 2455197.5 Days")
 	
 	axsRow[0].legend()
 
