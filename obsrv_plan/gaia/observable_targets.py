@@ -59,26 +59,34 @@ def __processSubset(df):
 
 	obsv_targets = df[df.can_obsv]
 	obsv_targets = obsv_targets.sort_values(by=['dec'])
+	print(f"{pid}: {len(obsv_targets)} objects visible found")
+	return obsv_targets
 
+def __exportTargets(obsv_targets: pd.DataFrame):
 	min_dec = obsv_targets.iloc[0]['dec']
 	max_dec = obsv_targets.iloc[-1]['dec']
 	output_file_path = os.path.join(RESULT_DIR, f"dec_{floor(min_dec)}_{ceil(max_dec)}.csv")
 	obsv_targets.to_csv(output_file_path)
-	printToLog(f"{pid}: Results output to {output_file_path}")
+	printToLog(f"Results output to {output_file_path}")
 
 def gaiaObservableTargets():
 	if not os.path.exists(RESULT_DIR):
 		os.makedirs(RESULT_DIR)
 
 	df = pd.read_csv(DATA_FILE_PATH)
-	df = df.sort_values(by=['dec'])
+	# df = df.sample(20000)
 	df = df.assign(can_obsv=lambda _: False, mer_time=lambda _: None)
 
 	num_rows = len(df)
 	print(f"Rows to process: {num_rows}")
 
+	obsv_targets: pd.DataFrame
 	with Pool(MAX_PARALLEL) as p:
-		p.map(__processSubset, np.array_split(df, MAX_PARALLEL))
+		obsv_targets = pd.concat(p.map(__processSubset, np.array_split(df, MAX_PARALLEL)))
+	print(f"Found total {len(obsv_targets)} visible objects")
+	obsv_targets = obsv_targets.sort_values(by=['dec'])
+
+	[__exportTargets(tgts) for tgts in np.array_split(obsv_targets, MAX_PARALLEL)]
 
 if __name__ == "__main__":
 	gaiaObservableTargets()

@@ -1,7 +1,7 @@
 import modin.pandas as pd
 import matplotlib.pyplot as plt
 
-PHOTOMETRY_CSV_PATH = r"/home/ramon/uanl/Tesis/Gaia DataLink/rcabal011663969705127/EPOCH_PHOTOMETRY_COMBINED.csv"
+PHOTOMETRY_CSV_PATH = r"/run/media/ramon/USBD/Tesis/Gaia Analisis/Gaia Light Curves/EPOCH_PHOTOMETRY-Gaia DR3 1982536326650942336.csv"
 
 def plotBand(source_id, bands, vals, axsRow):
 	axsRow[0].set_title(f"{source_id} Magnitude")
@@ -19,14 +19,20 @@ if __name__ == "__main__":
 	df = df[df['rejected_by_photometry'] == False]
 
 	source_ids = df['source_id'].unique()
+	sourceIdCount = len(source_ids)
 	bands = df['band'].unique()
 
-	fig, axs = plt.subplots(2, len(source_ids))
-	fig.suptitle(f"GDR2 Light Curves")
+	fig, axs = plt.subplots(2, sourceIdCount)
+	fig.suptitle(f"GDR3 Light Curves")
 
-	for i in range(len(source_ids)):
+	for i in range(sourceIdCount):
 		source_id = source_ids[i]
-		axsRow = axs[i]
+
+		axsRow: None
+		if sourceIdCount > 1:
+			axsRow = axs[i]
+		else:
+			axsRow = axs
 		sourceVals = df[df['source_id'] == source_ids[i]]
 		plotBand(source_id, bands, sourceVals, axsRow)
 

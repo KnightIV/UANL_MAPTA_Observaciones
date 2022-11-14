@@ -1,17 +1,17 @@
-from obsrv_plan.general.params import RESULT_DIR, SIMBAD_VOT_RESULTS
+from obsrv_plan.general.params import SIMBAD_VOT_RESULTS, SIMBAD_CATEGORIES
 from obsrv_plan.general.log import printToLog
 
-import os, json, io
+import os, json, io, csv
 from os.path import join
 
 from astropy.io.votable import parse_single_table
-from astropy.coordinates import SkyCoord
 
 def __cleanLine(line):
 	return line.replace("b'", "").replace("\\n'", "").replace("\\n", "\n")
 
 def __processDirTables(simbadVotDir: str):
-	categoriesSeen = {}
+	# categoriesSeen = {}
+	categoriesSeen = []
 
 	if not os.path.exists(join(simbadVotDir, ".done")):
 		print(f"Cannot process {simbadVotDir} until SIMBAD cross check is finished.")
@@ -34,32 +34,44 @@ def __processDirTables(simbadVotDir: str):
 			for starCandidate in vot.array:
 				starId = starCandidate[2]
 				starType = starCandidate[3]
-				sameTypeSeen = categoriesSeen.get(starType, [])
+				# sameTypeSeen = categoriesSeen.get(starType, [])
 				starRecord = {
 					"ra"	: starCandidate[4],
 					"dec"	: starCandidate[5],
 					"id"	: starId,
-					"gaia_sourceId": sourceId
+					"gaia_sourceId": sourceId,
+					"type": starType
 				}
-				sameTypeSeen.append(starRecord)
-				categoriesSeen[starType] = sameTypeSeen
+				categoriesSeen.append(starRecord)
+				# sameTypeSeen.append(starRecord)
+				# categoriesSeen[starType] = sameTypeSeen
 		except Exception as e:
 			printToLog(f"Error in {join(simbadVotDir, votFile)}: {str(e)}")
 	return categoriesSeen
 		
 def groupBySimbadCategories():
+	if not os.path.exists(SIMBAD_CATEGORIES):
+		os.makedirs(SIMBAD_CATEGORIES)
+
 	for d in os.listdir(SIMBAD_VOT_RESULTS):
-		jsonResultFileName = join(RESULT_DIR, f"{d}.json")
-		if os.path.exists(jsonResultFileName):
-			print(f"Results already gathered in {jsonResultFileName}")
+		resultFileName = join(SIMBAD_CATEGORIES, f"{d}.csv")
+		if os.path.exists(resultFileName):
+			print(f"Results already gathered in {resultFileName}")
 			continue
 		if not os.path.exists(join(SIMBAD_VOT_RESULTS, d, ".done")):
 			print(f"Results not yet finished for {d}")
 			continue
 
 		categoriesSeen = __processDirTables(join(SIMBAD_VOT_RESULTS, d))
-		with open(jsonResultFileName, "w+") as jsonFile:
-			json.dump(categoriesSeen, jsonFile)
+		CSV_COLS = ["ra", "dec", "id", "gaia_sourceId", "type"]
+		with open(resultFileName, 'w+') as csvFile:
+			writer = csv.DictWriter(csvFile, fieldnames=CSV_COLS)
+			writer.writeheader()
+			for data in categoriesSeen:
+				writer.writerow(data)
+
+		# with open(resultFileName, "w+") as jsonFile:
+		# 	json.dump(categoriesSeen, jsonFile)
 
 if __name__ == "__main__":
 	groupBySimbadCategories()

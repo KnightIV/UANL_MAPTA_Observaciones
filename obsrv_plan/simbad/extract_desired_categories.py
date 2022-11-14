@@ -1,11 +1,12 @@
-from obsrv_plan.general.params import RESULT_DIR
+from obsrv_plan.general.params import RESULT_DIR, SIMBAD_CATEGORIES
 
 from os.path import join, exists
 from os import listdir, makedirs
 import json
+import pandas as pd
 
 def __categoriesResultDir():
-	desiredCategoriesDir = join(RESULT_DIR, "desired-categories")
+	desiredCategoriesDir = join(RESULT_DIR, "desired-categories-test")
 	if not exists(desiredCategoriesDir):
 		makedirs(desiredCategoriesDir)
 	return desiredCategoriesDir
@@ -21,9 +22,23 @@ def __exportCategoryResults(categoriesSeen: dict):
 
 def __extractCategories(filePath: str, includeCategories: set[str] | None) -> dict:
 	print(f"Extracting {includeCategories} from {filePath}")
-	allCategories: dict
-	with open(filePath, "r") as jsonFile:
-		allCategories = json.load(jsonFile)
+	allCategories = {}
+	rawData = pd.read_csv(filePath)
+
+	for i in rawData.index:
+		simbadType = rawData.loc[i, 'type']
+		ra = rawData.loc[i, 'ra']
+		dec = rawData.loc[i, 'dec']
+		gaia_sourceid = str(rawData.loc[i, 'gaia_sourceId'])
+
+		categoryObjs = allCategories.get(simbadType, [])
+		categoryObjs.append({
+			'ra': ra,
+			'dec': dec,
+			'gaia_sourceId': gaia_sourceid
+		})
+		allCategories[simbadType] = categoryObjs
+
 	if not includeCategories:
 		return allCategories
 
@@ -33,13 +48,13 @@ def __extractCategories(filePath: str, includeCategories: set[str] | None) -> di
 	return desiredCategories
 
 def __isValidFile(f: str):
-	return f != "categories.json" and f != "categoriesHistogram.json" and f.endswith('.json')
+	return f != "categories.json" and f != "categoriesHistogram.json" and f.endswith('.csv')
 
 def __checkSimbadCategoriesSeen(desiredCategories: set[str] | None):
 	categoriesSeen = {}
-	for f in listdir(RESULT_DIR):
+	for f in listdir(SIMBAD_CATEGORIES):
 		if __isValidFile(f):
-			fileCategories = __extractCategories(join(RESULT_DIR, f), desiredCategories)
+			fileCategories = __extractCategories(join(SIMBAD_CATEGORIES, f), desiredCategories)
 			for cat in fileCategories:
 				categoriesSeen[cat] = categoriesSeen.get(cat, []) + fileCategories[cat]
 	return categoriesSeen
