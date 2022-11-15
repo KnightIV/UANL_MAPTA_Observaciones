@@ -2,11 +2,11 @@
 SIMBAD HTTP query. Stores VOTable retrieved in individual file in the declination folder it corresponds to.
 """
 
-from obsrv_plan.general.params import RESULT_DIR, MAX_PARALLEL
+from obsrv_plan.general.params import RESULT_DIR, MAX_PARALLEL, SIMBAD_VOT_RESULTS
 
 from os import listdir, makedirs, getpid
-from os.path import join, exists
-# from time import sleep
+from os.path import join, exists, isdir
+from time import sleep
 import csv, requests
 
 from multiprocessing import Pool, Lock
@@ -68,13 +68,14 @@ def __processSources(simbadResultDir, starRows):
 						if triesRemaining == 0:
 							print(f"[{pid}] Out of tries for ({ra}, {dec}). Skipping.")
 							break
+						sleep(2)
 			else:
 				print(f"[{pid}] Skipping SIMBAD query for ({ra} {dec}) coordinate.")
 		fileObjCount += 1
 	return fileObjCount
 
 def __retrieveSimbadVot(f: str):
-	if f.endswith(".json") or f == "simbad" or f == ".log":
+	if f.endswith(".json") or f == ".log" or isdir(join(RESULT_DIR, f)):
 		return
 	
 	pid = getpid()
@@ -83,14 +84,14 @@ def __retrieveSimbadVot(f: str):
 	print(f"[{pid}] Cross-checking '{f}' objects in SIMBAD.")
 	fileNameComponents = f.split("_")
 	curProcessing = f"{fileNameComponents[1]}_{fileNameComponents[2].replace('.csv', '')}"
-	simbadResultDir = join(RESULT_DIR, f"simbad/{curProcessing}")
+	simbadResultDir = join(SIMBAD_VOT_RESULTS, curProcessing)
 
 	with VOT_FILES_LOCK:
 		if not exists(simbadResultDir):
 			makedirs(simbadResultDir)
 		elif exists(join(simbadResultDir, ".done")):
 			print(f"[{pid}] Skipping querying for {curProcessing}")
-			return
+			return 0
 
 	with open(join(RESULT_DIR, f), "r") as csvFile:
 		starRows = csv.reader(csvFile)
@@ -102,7 +103,7 @@ def __retrieveSimbadVot(f: str):
 def retrieveSimbadVots():
 	totalObjCount = 0
 	with Pool(MAX_PARALLEL) as p:
-		totalObjCount = sum(p.map(__retrieveSimbadVot, listdir(RESULT_DIR)))
+		totalObjCount = sum(filter(lambda item: item is not None,  p.map(__retrieveSimbadVot, listdir(RESULT_DIR))))
 
 	print(f"Cross-matched {totalObjCount} objects with SIMBAD.")
 

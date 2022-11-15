@@ -6,7 +6,7 @@ import json
 import pandas as pd
 
 def __categoriesResultDir():
-	desiredCategoriesDir = join(RESULT_DIR, "desired-categories-test")
+	desiredCategoriesDir = join(RESULT_DIR, "desired-categories")
 	if not exists(desiredCategoriesDir):
 		makedirs(desiredCategoriesDir)
 	return desiredCategoriesDir
@@ -27,15 +27,13 @@ def __extractCategories(filePath: str, includeCategories: set[str] | None) -> di
 
 	for i in rawData.index:
 		simbadType = rawData.loc[i, 'type']
-		ra = rawData.loc[i, 'ra']
-		dec = rawData.loc[i, 'dec']
-		gaia_sourceid = str(rawData.loc[i, 'gaia_sourceId'])
 
 		categoryObjs = allCategories.get(simbadType, [])
 		categoryObjs.append({
-			'ra': ra,
-			'dec': dec,
-			'gaia_sourceId': gaia_sourceid
+			'ra': rawData.loc[i, 'ra'],
+			'dec': rawData.loc[i, 'dec'],
+			'gaia_sourceid': str(rawData.loc[i, 'gaia_sourceId']),
+			'id': rawData.loc[i, 'id']
 		})
 		allCategories[simbadType] = categoryObjs
 
