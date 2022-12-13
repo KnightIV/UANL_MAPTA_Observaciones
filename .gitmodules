@@ -1,3 +1,4 @@
 [submodule "astrometry"]
 	path = astrometry
 	url = https://github.com/dstndstn/astrometry.net
+	ignore = "all"
