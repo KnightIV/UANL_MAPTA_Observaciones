@@ -1,5 +1,4 @@
 from obsrv_plan.general.params import RESULT_DIR
-from obsrv_plan.decorators import static_decorator
 
 import datetime
 from os.path import join, exists
