@@ -29,7 +29,7 @@ def __is_observable(ra, dec, g_mag):
 						  format="isot",
 						  location=ITURBIDE_OBSV.location)
 
-	target = SkyCoord(ra, dec, unit="deg", frame="icrs", obstime="J2000")
+	target = SkyCoord(ra, dec, unit="deg", frame="icrs")
 	mer_time = ITURBIDE_OBSV.target_meridian_transit_time(
 		time=Time(val=OBSV_START_DATETIME),
 		target=target)
