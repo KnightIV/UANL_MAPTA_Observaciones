@@ -23,4 +23,4 @@ SIMBAD_VOT_RESULTS = join(RESULT_DIR, "simbad-raw_vot")
 # SIMBAD_VOT_RESULTS = join(RESULT_DIR, "simbad") # uncomment for backwards compat with previous dates
 
 SIMBAD_CATEGORIES = join(RESULT_DIR, "simbad-categories")
-MAX_PARALLEL = cpu_count() - 2
+MAX_PARALLEL = max(cpu_count() - 2, 2)
