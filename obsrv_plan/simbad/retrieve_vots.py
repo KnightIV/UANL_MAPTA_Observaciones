@@ -3,6 +3,7 @@ SIMBAD HTTP query. Stores VOTable retrieved in individual file in the declinatio
 """
 
 from obsrv_plan.general.params import RESULT_DIR, MAX_PARALLEL, SIMBAD_VOT_RESULTS
+from obsrv_plan.general.log import printToLog
 
 from os import listdir, makedirs, getpid
 from os.path import join, exists, isdir
@@ -27,10 +28,8 @@ def __querySimbad(simbadResultDir, sourceId, ra, dec):
 		'output.format': "VOTable"
 	}
 	result = requests.get(url=SIMBAD_QUERY_URL_TEMPLATE, params=params)
-	# print(f"Queried {result.url}")
 	with open(__genSimbadVotFilePath(simbadResultDir, sourceId, ra, dec), "w+") as simbadResultFile:
 		simbadResultFile.write(str(result.content))
-		# print(f"Wrote intermediate SIMBAD table to {simbadResultFile}")
 
 def __processSources(simbadResultDir, starRows):
 	pid = getpid()
@@ -64,9 +63,9 @@ def __processSources(simbadResultDir, starRows):
 						__querySimbad(simbadResultDir, sourceId, ra, dec)
 						break
 					except: 
-						print(f"[{pid}] Error querying for ({ra}, {dec}). Retrying {triesRemaining} more times.")
+						printToLog(f"[{pid}] Error querying for ({ra}, {dec}). Retrying {triesRemaining} more times.")
 						if triesRemaining == 0:
-							print(f"[{pid}] Out of tries for ({ra}, {dec}). Skipping.")
+							printToLog(f"[{pid}] Out of tries for ({ra}, {dec}). Skipping.")
 							break
 						sleep(2)
 			else:
