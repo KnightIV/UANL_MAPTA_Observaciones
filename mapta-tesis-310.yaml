@@ -36,9 +36,9 @@ dependencies:
   - brunsli=0.1=h9c3ff4c_0
   - bzip2=1.0.8=h7b6447c_0
   - c-ares=1.18.1=h7f8727e_0
-  - ca-certificates=2022.12.7=ha878542_0
+  - ca-certificates=2023.01.10=h06a4308_0
   - ccdproc=2.4.0=pyhd8ed1ab_0
-  - certifi=2022.12.7=pyhd8ed1ab_0
+  - certifi=2022.12.7=py310h06a4308_0
   - cffi=1.15.1=py310h74dc2b5_0
   - cfitsio=3.470=hb418390_7
   - charls=2.2.0=h2531618_0
@@ -98,6 +98,7 @@ dependencies:
   - intel-openmp=2021.4.0=h06a4308_3561
   - invoke=1.6.0=py310h06a4308_0
   - ipykernel=6.15.2=py310h06a4308_0
+  - ipympl=0.8.7=pyhd3eb1b0_0
   - ipython=8.4.0=py310h06a4308_0
   - ipython_genutils=0.2.0=pyhd3eb1b0_1
   - ipywidgets=7.6.5=pyhd3eb1b0_1
@@ -199,7 +200,7 @@ dependencies:
   - numpy-base=1.23.1=py310hcba007f_0
   - openh264=2.1.1=h4ff587b_0
   - openjpeg=2.3.1=hf7af979_3
-  - openssl=1.1.1s=h0b41bf4_1
+  - openssl=1.1.1t=h7f8727e_0
   - packaging=21.3=pyhd3eb1b0_0
   - pandas=1.4.3=py310h6a678d5_0
   - pandocfilters=1.5.0=pyhd3eb1b0_0
