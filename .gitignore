@@ -6,3 +6,4 @@
 *.vot
 *.done
 **/dask-worker-space
+**/.ipynb_checkpoints
