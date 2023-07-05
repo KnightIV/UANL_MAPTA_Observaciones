@@ -7,3 +7,5 @@
 *.done
 **/dask-worker-space
 **/.ipynb_checkpoints
+analisis/phoebe_model/bundle-saves
+analisis/phoebe_model/external-jobs
