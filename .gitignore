@@ -9,4 +9,5 @@
 **/.ipynb_checkpoints
 analisis/phoebe_model/bundle-saves
 analisis/phoebe_model/*/external-jobs
+analisis/phoebe_model/*/bundle-saves
 analisis/phoebe_model/external-jobs
