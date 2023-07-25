@@ -16,7 +16,6 @@ def adopt_solution(b: phoebe.Bundle, label: str, solution_file:str=None, plot=Tr
     if run_compute: 
         b.run_compute(model=f"opt_{label}_model", **compute_kwargs, overwrite=True)
     if plot:
-        print("Plotting")
         b.plot(model=f'opt_{label}_model', kind='lc', x='phase', show=True, legend=True)
 
 def optimize_params(b: phoebe.Bundle, fit_twigs: list[str], label: str, export: bool, optimizer='optimizer.nelder_mead', **solver_kwargs):
