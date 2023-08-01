@@ -18,10 +18,15 @@ def adopt_solution(b: phoebe.Bundle, label: str, solution_file:str=None, plot=Tr
     if plot:
         b.plot(model=f'opt_{label}_model', kind='lc', x='phase', show=True, legend=True)
 
-def optimize_params(b: phoebe.Bundle, fit_twigs: list[str], label: str, export: bool, optimizer='optimizer.nelder_mead', **solver_kwargs):
+def optimize_params(b: phoebe.Bundle, fit_twigs: list[str], label: str, export: bool, datasets=['lc_iturbide'], optimizer='optimizer.nelder_mead', **solver_kwargs):
     if not 'maxiter' in solver_kwargs.keys():
         solver_kwargs['maxiter'] = 200 if export else 10
-    b.add_solver(optimizer, solver=f'opt_{label}', fit_parameters=fit_twigs, overwrite=True, **solver_kwargs)
+
+    for d in b.datasets:
+         b.set_value(qualifier='enabled', dataset=d, value=True if d in datasets or d == 'mesh01' else False)
+    
+    saveIterProgress = 1 if export else 0
+    b.add_solver(optimizer, solver=f'opt_{label}', fit_parameters=fit_twigs, overwrite=True, progress_every_niters=saveIterProgress, **solver_kwargs)
     if export:
         fname, out_fname = b.export_solver(script_fname=f'./external-jobs/{optimizer}_opt_{label}.py', out_fname=f'./results/opt_{label}_solution', 
                                               solver=f'opt_{label}', solution=f'opt_{label}_solution')
