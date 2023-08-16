@@ -4,13 +4,14 @@ import phoebe
 from phoebe import u
 
 import matplotlib.pyplot as plt
-plt.rcParams["animation.html"] = "html5"
-plt.rcParams["figure.figsize"] = (15,8)
 
 from matplotlib.animation import FuncAnimation
 from IPython import display
 
 def displayAnim(anim: FuncAnimation):
+	plt.rcParams["animation.html"] = "html5"
+	plt.rcParams["figure.figsize"] = (15,8)
+
 	video = anim.to_html5_video()
 	display.display(display.HTML(video))
 
@@ -23,9 +24,10 @@ def printFittedVals(b: phoebe.Bundle, solution: str):
 		except:
 			print(param, value, unit)
 
-def printFittedTwigsConstraints(b: phoebe.Bundle, solution: str):
+def printFittedTwigsConstraints(b: phoebe.Bundle, solution: str, units: dict[str, u.Unit]):
 	for fitTwig in b.get_value('fitted_twigs', solution=solution):
-		print(b.filter(fitTwig))
+		quantity = b.get_quantity(fitTwig)
+		print("C" if b[fitTwig].constrained_by else " ", fitTwig, quantity.to(units.get(fitTwig, quantity.unit)))
 
 def saveBundle(b: phoebe.Bundle, bundleName: str) -> str:
 	if not os.path.exists("bundle-saves"):
@@ -54,6 +56,17 @@ def getEnabledDatasets(b: phoebe.Bundle):
 			if b.get_value(qualifier='enabled', compute=c, dataset=d) and d not in enabledDatasets:
 				enabledDatasets.append(d)
 	return enabledDatasets
+
+def abilitateDatasets(b: phoebe.Bundle, enableDatasets: list[str], includeMesh: bool = True):
+	"""
+	Enables specified datasets and disables all others.
+	"""
+	localDatasets = enableDatasets.copy()
+	if includeMesh:
+		localDatasets.append('mesh01')
+		
+	for d in b.datasets:
+		b.set_value_all(qualifier='enabled', dataset=d, value=(d in localDatasets))
 
 def plotEnabledData(b: phoebe.Bundle, **plot_kwargs):
 	b.plot(kind='lc', dataset=getEnabledDatasets(b), marker='.', show=True, legend=True, **plot_kwargs)
