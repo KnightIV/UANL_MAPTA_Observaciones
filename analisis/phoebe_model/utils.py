@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 
 from matplotlib.animation import FuncAnimation
 from IPython import display
+# from ipywidgets import Output, GridspecLayout, HTML
+import ipywidgets
 
 def displayAnim(anim: FuncAnimation):
 	plt.rcParams["animation.html"] = "html5"
@@ -14,6 +16,19 @@ def displayAnim(anim: FuncAnimation):
 
 	video = anim.to_html5_video()
 	display.display(display.HTML(video))
+
+def displayAnims(rows: int, cols: int, *anims: FuncAnimation):
+	plt.rcParams["animation.html"] = "html5"
+	plt.rcParams["figure.figsize"] = (15,8)
+	
+	grid = ipywidgets.GridspecLayout(n_rows=rows, n_columns=cols)
+	for row in range(rows):
+		for col in range(cols):
+			index = (row*cols) + col
+			anim = anims[index]
+			grid[row, col] = ipywidgets.HTML(anim.to_html5_video())
+
+	display.display(grid)
 
 def printFittedVals(b: phoebe.Bundle, solution: str):
 	for param, value, unit in zip(b.get_value('fitted_twigs', solution=solution),
@@ -43,11 +58,14 @@ def resetAtmosphere(b: phoebe.Bundle):
 	b.set_value_all(qualifier='ld_mode', dataset='lc_iturbide', value='interp') # original value = interp
 	b.set_value_all(qualifier='ld_mode_bol', value='lookup') # original value = lookup
 
-def animateMesh(b: phoebe.Bundle, logger=None, meshDataset="mesh01", fc='teffs', **plot_kwargs):
+def genAnimatedMesh(b: phoebe.Bundle, logger=None, meshDataset="mesh01", fc='teffs', **plot_kwargs):
 	if logger: logger.setLevel('ERROR')
 	_, mplfig = b.plot(dataset=meshDataset, kind='mesh', fc=fc, ec='face', animate=True, draw_sidebars=True, **plot_kwargs)
 	if logger: logger.setLevel('WARNING')
-	displayAnim(mplfig)
+	return mplfig
+
+def animateMesh(b: phoebe.Bundle, logger=None, meshDataset="mesh01", fc='teffs', **plot_kwargs):
+	displayAnim(genAnimatedMesh(b, logger, meshDataset, fc, **plot_kwargs))
 
 def getEnabledDatasets(b: phoebe.Bundle):
 	enabledDatasets = []
