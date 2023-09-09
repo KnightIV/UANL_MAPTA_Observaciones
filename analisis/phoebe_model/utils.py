@@ -7,15 +7,10 @@ import matplotlib.pyplot as plt
 
 from matplotlib.animation import FuncAnimation
 from IPython import display
-# from ipywidgets import Output, GridspecLayout, HTML
 import ipywidgets
 
-def displayAnim(anim: FuncAnimation):
-	plt.rcParams["animation.html"] = "html5"
-	plt.rcParams["figure.figsize"] = (15,8)
-
-	video = anim.to_html5_video()
-	display.display(display.HTML(video))
+GAIA_RAW_PLOT_COLORS = {'lc_gaia_g_raw@dataset':'green', 'lc_gaia_rp_raw@dataset':'red', 'lc_gaia_bp_raw@dataset':'blue',
+						'lc_gaia_g_raw@model':'darkgreen', 'lc_gaia_rp_raw@model':'darkred', 'lc_gaia_bp_raw@model':'darkblue'}
 
 def displayAnims(rows: int, cols: int, *anims: FuncAnimation):
 	plt.rcParams["animation.html"] = "html5"
@@ -30,16 +25,19 @@ def displayAnims(rows: int, cols: int, *anims: FuncAnimation):
 
 	display.display(grid)
 
+def displayAnim(anim: FuncAnimation):
+	displayAnims(1, 1, anim)
+
 def printFittedVals(b: phoebe.Bundle, solution: str):
 	for param, value, unit in zip(b.get_value('fitted_twigs', solution=solution),
 								b.get_value('fitted_values', solution=solution),
 								b.get_value('fitted_units', solution=solution)): 
 		try:
-			print(f"{param} = {value:.2f} {unit}")
+			print(f"{param} = {value:.5f} {unit}")
 		except:
 			print(param, value, unit)
 
-def printFittedTwigsConstraints(b: phoebe.Bundle, solution: str, units: dict[str, u.Unit]):
+def printFittedTwigsConstraints(b: phoebe.Bundle, solution: str, units: dict[str, u.Unit] = {}):
 	for fitTwig in b.get_value('fitted_twigs', solution=solution):
 		quantity = b.get_quantity(fitTwig)
 		print("C" if b[fitTwig].constrained_by else " ", fitTwig, quantity.to(units.get(fitTwig, quantity.unit)))
@@ -92,3 +90,23 @@ def plotEnabledData(b: phoebe.Bundle, **plot_kwargs):
 def phasePlotEnabledData(b: phoebe.Bundle, **plot_kwargs):
 	period = b.get_quantity(qualifier='period', component='binary')
 	plotEnabledData(b, x='phase', title=f"$P_{{orb}}$ = {period:.3f} | {period.to(u.hour):.3f}", draw_title=True, **plot_kwargs)
+
+def plotFigSize(b: phoebe.Bundle, figsize: tuple[float, float], **plot_kwargs):
+	fig = plt.figure(figsize=figsize)
+	b.plot(fig=fig, **plot_kwargs)
+
+def plotModelResidualsFigsize(b: phoebe.Bundle, figsize: tuple[float, float], datasetGroups: list[list[str]], model: str, **plot_kwargs):
+	"""
+	Plots specified model for the datasets given. Plots dataset(s) with model overlay alongside residuals side-by-side.
+	"""
+	residuals_kwargs = plot_kwargs.copy()
+	residuals_kwargs['marker'] = '.'
+
+	for datasets in datasetGroups:
+		fig = plt.figure(figsize=figsize)
+		b.plot(x='phase', model=model, dataset=datasets, axorder=1, fig=fig, **plot_kwargs)
+		b.plot(x='phase', y='residuals', model=model, dataset=datasets, axorder=2, fig=fig, subplot_grid=(1,2), show=True, **residuals_kwargs)
+
+	# fig = plt.figure(figsize=figsize)
+	# b.plot(x='phase', model=model, dataset='lc_iturbide_raw', axorder=1, fig=fig, **plot_kwargs)
+	# b.plot(x='phase', y='residuals', model=model, dataset='lc_iturbide_raw', axorder=1, fig=fig, **plot_kwargs)
