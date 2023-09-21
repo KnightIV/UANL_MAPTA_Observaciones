@@ -20,8 +20,9 @@ def adopt_solution(b: phoebe.Bundle, label:str=None,
 		label = solutionName.replace("_solution", "").replace("opt_", "")
 
 	if print_sol:
+		print("Adopted:")
 		gen_utils.printFittedVals(b, solutionName)
-		print("=========================\nAdopted\n=========================")
+		print("\nOriginal values:")
 		gen_utils.printFittedTwigsConstraints(b, solutionName)
 	b.adopt_solution(solutionName)
 
@@ -39,7 +40,7 @@ def adopt_solution(b: phoebe.Bundle, label:str=None,
 	
 	return AdoptSolutionResult(solutionName, computeModelName)
 
-def optimize_params(b: phoebe.Bundle, fit_twigs: list[str], label: str, export: bool, 
+def optimize_params(b: phoebe.Bundle, fit_twigs: list[str], label: str, export: bool, subfolder: str=None,
 		    		datasets=['lc_iturbide'], optimizer='optimizer.nelder_mead', compute='phoebe01', 
 					**solver_kwargs):
 	if not 'maxiter' in solver_kwargs.keys():
@@ -53,12 +54,15 @@ def optimize_params(b: phoebe.Bundle, fit_twigs: list[str], label: str, export: 
 	if export:
 		if not os.path.exists('external-jobs'):
 			os.mkdir('external-jobs')
-				
-		fname, out_fname = b.export_solver(script_fname=f'./external-jobs/{optimizer}_opt_{label}.py', out_fname=f'./results/opt_{label}_solution', 
+		if subfolder is not None:
+			os.makedirs(os.path.join('external-jobs', subfolder), exist_ok=True)
+		
+		exportPath = f'./external-jobs{f"/{subfolder}" if subfolder is not None else ""}/{optimizer}_opt_{label}.py'
+		fname, out_fname = b.export_solver(script_fname=exportPath, out_fname=f'./results/opt_{label}_solution', 
 											  solver=f'opt_{label}', solution=f'opt_{label}_solution', overwrite=True)
 		print("External Solver:", fname, out_fname)
 	else:
-		b.run_solver(solver=f'opt_{label}', solution=f'opt_{label}_solution', **solver_kwargs)
+		b.run_solver(solver=f'opt_{label}', solution=f'opt_{label}_solution', overwrite=True, **solver_kwargs)
 
 	gen_utils.abilitateDatasets(b, abilitatedDatasets)
 	

@@ -11,6 +11,8 @@ import ipywidgets
 
 GAIA_RAW_PLOT_COLORS = {'lc_gaia_g_raw@dataset':'green', 'lc_gaia_rp_raw@dataset':'red', 'lc_gaia_bp_raw@dataset':'blue',
 						'lc_gaia_g_raw@model':'darkgreen', 'lc_gaia_rp_raw@model':'darkred', 'lc_gaia_bp_raw@model':'darkblue'}
+GAIA_NORM_PLOT_COLORS = {'lc_gaia_g@dataset':'green', 'lc_gaia_rp@dataset':'red', 'lc_gaia_bp@dataset':'blue',
+						'lc_gaia_g@model':'darkgreen', 'lc_gaia_rp@model':'darkred', 'lc_gaia_bp@model':'darkblue'}
 
 def displayAnims(rows: int, cols: int, *anims: FuncAnimation):
 	plt.rcParams["animation.html"] = "html5"
@@ -42,11 +44,16 @@ def printFittedTwigsConstraints(b: phoebe.Bundle, solution: str, units: dict[str
 		quantity = b.get_quantity(fitTwig)
 		print("C" if b[fitTwig].constrained_by else " ", fitTwig, quantity.to(units.get(fitTwig, quantity.unit)))
 
-def saveBundle(b: phoebe.Bundle, bundleName: str) -> str:
+def saveBundle(b: phoebe.Bundle, bundleName: str, subfolder: str = None) -> str:
 	if not os.path.exists("bundle-saves"):
 		os.mkdir("bundle-saves")
+
+	saveFolder = "bundle-saves"
+	if subfolder:
+		saveFolder = f"bundle-saves/{subfolder}"
+		os.makedirs(saveFolder, exist_ok=True)
 	
-	return b.save(f"bundle-saves/{bundleName}")
+	return b.save(f"{saveFolder}/{bundleName}")
 
 def avoidAtmosphereErrors(b: phoebe.Bundle):
 	b.set_value_all(qualifier='ld_mode', value='manual') # original value = interp
@@ -104,8 +111,8 @@ def plotModelResidualsFigsize(b: phoebe.Bundle, figsize: tuple[float, float], da
 
 	for datasets in datasetGroups:
 		fig = plt.figure(figsize=figsize)
-		b.plot(x='phase', model=model, dataset=datasets, axorder=1, fig=fig, **plot_kwargs)
-		b.plot(x='phase', y='residuals', model=model, dataset=datasets, axorder=2, fig=fig, subplot_grid=(1,2), show=True, **residuals_kwargs)
+		b.plot(x='phase', model=model, dataset=datasets, axorder=1, fig=fig, s={'dataset':0.008}, **plot_kwargs)
+		b.plot(x='phase', y='residuals', model=model, dataset=datasets, axorder=2, fig=fig, subplot_grid=(1,2), s=0.008, show=True, **residuals_kwargs)
 
 	# fig = plt.figure(figsize=figsize)
 	# b.plot(x='phase', model=model, dataset='lc_iturbide_raw', axorder=1, fig=fig, **plot_kwargs)
