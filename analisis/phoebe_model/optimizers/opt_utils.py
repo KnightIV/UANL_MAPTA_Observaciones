@@ -6,7 +6,6 @@ from phoebe import u
 
 import analisis.phoebe_model.utils as gen_utils
 
-
 AdoptSolutionResult = namedtuple("AdoptSolutionResult", "solutionName computeModelName")
 def adopt_solution(b: phoebe.Bundle, label:str=None, 
 					reset_params=False, solution_file:str=None, plot=True, 
