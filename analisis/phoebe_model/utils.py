@@ -102,10 +102,18 @@ def plotFigSize(b: phoebe.Bundle, figsize: tuple[float, float], **plot_kwargs):
 	fig = plt.figure(figsize=figsize)
 	b.plot(fig=fig, **plot_kwargs)
 
-def plotModelResidualsFigsize(b: phoebe.Bundle, figsize: tuple[float, float], datasetGroups: list[list[str]], model: str, **plot_kwargs):
+def plotModelResidualsFigsize(b: phoebe.Bundle, figsize: tuple[float, float], datasetGroups: list[list[str] | str], model: str, **plot_kwargs):
 	"""
 	Plots specified model for the datasets given. Plots dataset(s) with model overlay alongside residuals side-by-side.
 	"""
+	defaultPlotKwargs = {
+		'marker': {'dataset': '.'},
+		'color': GAIA_RAW_PLOT_COLORS,
+		'legend': True
+	}
+	for key, defaultVal in defaultPlotKwargs.items():
+		plot_kwargs[key] = plot_kwargs.get(key, defaultVal)
+
 	residuals_kwargs = plot_kwargs.copy()
 	residuals_kwargs['marker'] = '.'
 
