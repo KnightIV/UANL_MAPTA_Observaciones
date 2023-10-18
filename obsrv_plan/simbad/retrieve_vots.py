@@ -8,7 +8,7 @@ from obsrv_plan.general.log import printToLog
 from os import listdir, makedirs, getpid
 from os.path import join, exists, isdir
 from time import sleep
-import csv, requests
+import csv, requests, random
 
 from multiprocessing import Pool, Lock
 
@@ -20,9 +20,8 @@ def __genSimbadVotFilePath(simbadResultDir, sourceId, ra, dec):
 def __querySimbad(simbadResultDir, sourceId, ra, dec):
 	SIMBAD_QUERY_URL_TEMPLATE = "http://simbad.u-strasbg.fr/simbad/sim-coo"
 	
-	coordParam = f"{ra} {dec}"
 	params = {
-		'Coord': coordParam,
+		'Coord': f"{ra} {dec}",
 		'Radius': 2,
 		'Radius.unit': "arcmin",
 		'output.format': "VOTable"
@@ -30,12 +29,13 @@ def __querySimbad(simbadResultDir, sourceId, ra, dec):
 	result = requests.get(url=SIMBAD_QUERY_URL_TEMPLATE, params=params)
 	with open(__genSimbadVotFilePath(simbadResultDir, sourceId, ra, dec), "w+") as simbadResultFile:
 		simbadResultFile.write(str(result.content))
+	sleep(random.randint(2,4))
 
 def __processSources(simbadResultDir, starRows):
 	pid = getpid()
 
-	RA_PROP = "j2000_ra_prop"
-	DEC_PROP = "j2000_dec_prop"
+	RA_PROP = "J2000_ra_prop"
+	DEC_PROP = "J2000_dec_prop"
 	SOURCE_ID_PROP = "source_id"
 
 	RA_COL_POS 	= -1
@@ -63,11 +63,12 @@ def __processSources(simbadResultDir, starRows):
 						__querySimbad(simbadResultDir, sourceId, ra, dec)
 						break
 					except: 
-						printToLog(f"[{pid}] Error querying for ({ra}, {dec}). Retrying {triesRemaining} more times.")
 						if triesRemaining == 0:
 							printToLog(f"[{pid}] Out of tries for ({ra}, {dec}). Skipping.")
 							break
-						sleep(2)
+						else:
+							printToLog(f"[{pid}] Error querying for ({ra}, {dec}). Retrying {triesRemaining} more times.")
+							sleep(2)
 			else:
 				print(f"[{pid}] Skipping SIMBAD query for ({ra} {dec}) coordinate.")
 		fileObjCount += 1

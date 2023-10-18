@@ -49,8 +49,8 @@ def __processSubset(df):
 	for i in df.index:
 		if rowsToProcess % 100 == 0:
 			print(f"{pid}: {rowsToProcess} elements left to process")
-		ra = df.loc[i, 'j2000_ra_prop']
-		dec = df.loc[i, 'j2000_dec_prop']
+		ra = df.loc[i, 'J2000_ra_prop']
+		dec = df.loc[i, 'J2000_dec_prop']
 		g_mag = df.loc[i, 'phot_g_mean_mag']
 		(mer_time, can_obsv) = __is_observable(ra, dec, g_mag)
 		df.loc[i, 'mer_time'] = mer_time
@@ -74,6 +74,7 @@ def gaiaObservableTargets():
 		os.makedirs(RESULT_DIR)
 
 	df = pd.read_csv(DATA_FILE_PATH)
+	print("Finished reading in Gaia CSV data.")
 	# df = df.sample(20000)
 	df = df.assign(can_obsv=lambda _: False, mer_time=lambda _: None)
 
