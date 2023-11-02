@@ -52,6 +52,9 @@ def saveBundle(b: phoebe.Bundle, bundleName: str, subfolder: str = None) -> str:
 	if subfolder:
 		saveFolder = f"bundle-saves/{subfolder}"
 		os.makedirs(saveFolder, exist_ok=True)
+
+	if os.path.exists(os.path.join(saveFolder, bundleName)):
+		print(f"CAUTION: overwriting {os.path.join(saveFolder, bundleName)}")
 	
 	return b.save(f"{saveFolder}/{bundleName}")
 

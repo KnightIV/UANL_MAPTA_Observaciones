@@ -23,19 +23,22 @@ def adopt_solution(b: phoebe.Bundle, label:str=None,
 		gen_utils.printFittedVals(b, solutionName)
 		print("\nOriginal values:")
 		gen_utils.printFittedTwigsConstraints(b, solutionName)
-	b.adopt_solution(solutionName)
 
-	computeModelName = None
-	if run_compute: 
-		computeModelName = f"opt_{label}_model"
-		b.run_compute(model=computeModelName, compute=compute, **compute_kwargs, overwrite=True)
-	if plot:
-		b.plot(model=computeModelName, kind='lc', x='phase', show=True, legend=True)
-	if reset_params:
-		for twig, val, unit in zip(b.get_value(f'{solutionName}@fitted_twigs'),
-						   		b.get_value(f'{solutionName}@initial_values'),
-						   		b.get_value(f'{solutionName}@fitted_units')):
-			b.set_value(twig, val * u.Unit(unit))
+	try:
+		b.adopt_solution(solutionName)
+
+		computeModelName = None
+		if run_compute: 
+			computeModelName = f"opt_{label}_model"
+			b.run_compute(model=computeModelName, compute=compute, **compute_kwargs, overwrite=True)
+		if plot:
+			b.plot(model=computeModelName, kind='lc', x='phase', show=True, legend=True)
+	finally:
+		if reset_params:
+			for twig, val, unit in zip(b.get_value(f'{solutionName}@fitted_twigs'),
+									b.get_value(f'{solutionName}@initial_values'),
+									b.get_value(f'{solutionName}@fitted_units')):
+				b.set_value(twig, val * u.Unit(unit))
 	
 	return AdoptSolutionResult(solutionName, computeModelName)
 
