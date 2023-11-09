@@ -124,7 +124,3 @@ def plotModelResidualsFigsize(b: phoebe.Bundle, figsize: tuple[float, float], da
 		fig = plt.figure(figsize=figsize)
 		b.plot(x='phase', model=model, dataset=datasets, axorder=1, fig=fig, s={'dataset':0.008}, **plot_kwargs)
 		b.plot(x='phase', y='residuals', model=model, dataset=datasets, axorder=2, fig=fig, subplot_grid=(1,2), s=0.008, show=True, **residuals_kwargs)
-
-	# fig = plt.figure(figsize=figsize)
-	# b.plot(x='phase', model=model, dataset='lc_iturbide_raw', axorder=1, fig=fig, **plot_kwargs)
-	# b.plot(x='phase', y='residuals', model=model, dataset='lc_iturbide_raw', axorder=1, fig=fig, **plot_kwargs)
