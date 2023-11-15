@@ -14,6 +14,10 @@ GAIA_RAW_PLOT_COLORS = {'lc_gaia_g_raw@dataset':'green', 'lc_gaia_rp_raw@dataset
 GAIA_NORM_PLOT_COLORS = {'lc_gaia_g@dataset':'green', 'lc_gaia_rp@dataset':'red', 'lc_gaia_bp@dataset':'blue',
 						'lc_gaia_g@model':'darkgreen', 'lc_gaia_rp@model':'darkred', 'lc_gaia_bp@model':'darkblue'}
 
+# for re-named datasets in sampler
+GAIA_PLOT_COLORS = {'lcGaiaG@dataset':'green', 'lcGaiaRP@dataset':'red', 'lcGaiaBP@dataset':'blue',
+						'lcGaiaG@model':'darkgreen', 'lcGaiaRP@model':'darkred', 'lcGaiaBP@model':'darkblue'}
+
 def displayAnims(rows: int, cols: int, *anims: FuncAnimation):
 	plt.rcParams["animation.html"] = "html5"
 	plt.rcParams["figure.figsize"] = (15,8)
@@ -87,12 +91,16 @@ def abilitateDatasets(b: phoebe.Bundle, enableDatasets: list[str], includeMesh: 
 	"""
 	Enables specified datasets and disables all others.
 	"""
-	localDatasets = enableDatasets.copy()
+	enableDatasets = enableDatasets.copy()
 	if includeMesh:
-		localDatasets.append('mesh01')
+		enableDatasets.append('mesh01')
 		
 	for d in b.datasets:
-		b.set_value_all(qualifier='enabled', dataset=d, value=(d in localDatasets))
+		if d in enableDatasets:
+			b.enable_dataset(d)
+		else:
+			b.disable_dataset(d)
+		# b.set_value_all(qualifier='enabled', dataset=d, value=(d in localDatasets))
 
 def plotEnabledData(b: phoebe.Bundle, **plot_kwargs):
 	b.plot(kind='lc', dataset=getEnabledDatasets(b), marker='.', show=True, legend=True, **plot_kwargs)
@@ -111,7 +119,7 @@ def plotModelResidualsFigsize(b: phoebe.Bundle, figsize: tuple[float, float], da
 	"""
 	defaultPlotKwargs = {
 		'marker': {'dataset': '.'},
-		'color': GAIA_RAW_PLOT_COLORS,
+		'color': GAIA_PLOT_COLORS | GAIA_RAW_PLOT_COLORS | GAIA_NORM_PLOT_COLORS,
 		'legend': True
 	}
 	for key, defaultVal in defaultPlotKwargs.items():
@@ -124,3 +132,15 @@ def plotModelResidualsFigsize(b: phoebe.Bundle, figsize: tuple[float, float], da
 		fig = plt.figure(figsize=figsize)
 		b.plot(x='phase', model=model, dataset=datasets, axorder=1, fig=fig, s={'dataset':0.008}, **plot_kwargs)
 		b.plot(x='phase', y='residuals', model=model, dataset=datasets, axorder=2, fig=fig, subplot_grid=(1,2), s=0.008, show=True, **residuals_kwargs)
+
+def exportCompute(b: phoebe.Bundle, model: str, datasets: list[str], subfolder: str = None, **compute_kwargs) -> None:
+	if not os.path.exists("external-compute"):
+		os.mkdir("external-compute")
+
+	computeFolder = "external-compute"
+	if subfolder:
+		computeFolder = f"external-compute/{subfolder}"
+		os.makedirs(computeFolder, exist_ok=True)
+
+	b.export_compute(script_fname=os.path.join(computeFolder, f"{model}.py"), out_fname=os.path.join(computeFolder, "results", f"{model}.model"), 
+				  model=model, dataset=datasets, **compute_kwargs)
