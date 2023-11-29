@@ -2,13 +2,12 @@ import os
 from collections import namedtuple
 
 import phoebe
-from phoebe import u
 
 import analisis.phoebe_model.utils as gen_utils
 
 AdoptSolutionResult = namedtuple("AdoptSolutionResult", "solutionName computeModelName")
 def adopt_solution(b: phoebe.Bundle, label:str=None, 
-					reset_params=False, solution_file:str=None, plot=True, 
+					reset_params=False, solution_file:str=None,
 					run_compute=True, print_sol=True, compute='phoebe01', **compute_kwargs) -> AdoptSolutionResult:
 	solutionName: str
 	if label is not None:
@@ -25,25 +24,26 @@ def adopt_solution(b: phoebe.Bundle, label:str=None,
 		gen_utils.printFittedTwigsConstraints(b, solutionName)
 
 	try:
+		initValues = {}
+		if reset_params:
+			for twig in b.get_value(qualifier='fitted_twigs', solution=solutionName):
+				initValues[twig] = b.get_quantity(twig)
+
 		b.adopt_solution(solutionName)
 
 		computeModelName = None
 		if run_compute: 
 			computeModelName = f"opt_{label}_model"
 			b.run_compute(model=computeModelName, compute=compute, **compute_kwargs, overwrite=True)
-		if plot:
-			b.plot(model=computeModelName, kind='lc', x='phase', show=True, legend=True)
 	finally:
 		if reset_params:
-			for twig, val, unit in zip(b.get_value(f'{solutionName}@fitted_twigs'),
-									b.get_value(f'{solutionName}@initial_values'),
-									b.get_value(f'{solutionName}@fitted_units')):
-				b.set_value(twig, val * u.Unit(unit))
+			for twig, val in initValues.items():
+				b.set_value(twig, value=val)
 	
 	return AdoptSolutionResult(solutionName, computeModelName)
 
-def optimize_params(b: phoebe.Bundle, fit_twigs: list[str], label: str, export: bool, subfolder: str=None,
-		    		datasets=['lc_iturbide'], optimizer='optimizer.nelder_mead', compute='phoebe01', 
+def optimize_params(b: phoebe.Bundle, fit_twigs: list[str], label: str, export: bool, datasets: list[str], subfolder: str=None, 
+					optimizer='optimizer.nelder_mead', compute='phoebe01', 
 					**solver_kwargs):
 	if not 'maxiter' in solver_kwargs.keys():
 		solver_kwargs['maxiter'] = 200 if export else 10
