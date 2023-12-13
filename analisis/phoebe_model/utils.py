@@ -24,7 +24,7 @@ GAIA_PLOT_COLORS = {'lcGaiaG@dataset':'green', 'lcGaiaRP@dataset':'red', 'lcGaia
 						'lcGaiaG@model':'darkgreen', 'lcGaiaRP@model':'darkred', 'lcGaiaBP@model':'darkblue'}
 
 ZTF_PLOT_COLORS = {'lcZtfG@dataset': 'yellowgreen', 'lcZtfR@dataset': 'indianred',
-				   'lcZtf@model': 'seagreen', 'lcZtfR@model': 'maroon'}
+				   'lcZtfG@model': 'seagreen', 'lcZtfR@model': 'maroon'}
 
 def displayAnims(rows: int, cols: int, *anims: FuncAnimation):
 	plt.rcParams["animation.html"] = "html5"
