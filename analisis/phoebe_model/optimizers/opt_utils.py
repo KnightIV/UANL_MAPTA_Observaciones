@@ -43,7 +43,7 @@ def adopt_solution(b: phoebe.Bundle, label:str=None,
 	return AdoptSolutionResult(solutionName, computeModelName)
 
 def optimize_params(b: phoebe.Bundle, fit_twigs: list[str], label: str, export: bool, datasets: list[str], subfolder: str=None, 
-					optimizer='optimizer.nelder_mead', compute='phoebe01', 
+					optimizer='optimizer.nelder_mead', compute='phoebe01', overwrite_export=True,
 					**solver_kwargs):
 	if not 'maxiter' in solver_kwargs.keys():
 		solver_kwargs['maxiter'] = 200 if export else 10
@@ -60,9 +60,12 @@ def optimize_params(b: phoebe.Bundle, fit_twigs: list[str], label: str, export: 
 			os.makedirs(os.path.join('external-jobs', subfolder), exist_ok=True)
 		
 		exportPath = f'./external-jobs{f"/{subfolder}" if subfolder is not None else ""}/{optimizer}_opt_{label}.py'
-		fname, out_fname = b.export_solver(script_fname=exportPath, out_fname=f'./results/opt_{label}_solution', 
-											  solver=f'opt_{label}', solution=f'opt_{label}_solution', overwrite=True)
-		print("External Solver:", fname, out_fname)
+		if not overwrite_export and os.path.exists(exportPath):
+			print("Solver already exists |", exportPath)
+		else:
+			fname, out_fname = b.export_solver(script_fname=exportPath, out_fname=f'./results/opt_{label}_solution', 
+												solver=f'opt_{label}', solution=f'opt_{label}_solution', overwrite=True)
+			print("External Solver:", fname, out_fname)
 	else:
 		b.run_solver(solver=f'opt_{label}', solution=f'opt_{label}_solution', overwrite=True, **solver_kwargs)
 
