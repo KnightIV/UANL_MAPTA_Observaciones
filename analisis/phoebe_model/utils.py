@@ -42,17 +42,35 @@ def displayAnims(rows: int, cols: int, *anims: FuncAnimation):
 def displayAnim(anim: FuncAnimation):
 	displayAnims(1, 1, anim)
 
-def printFittedVals(b: phoebe.Bundle, solution: str):
-	for param, value, unit in zip(b.get_value('fitted_twigs', solution=solution),
+def printFittedVals(b: phoebe.Bundle, solution: str, adopt_twigs: list[str] = None):
+	for twig, value, unit in zip(b.get_value('fitted_twigs', solution=solution),
 								b.get_value('fitted_values', solution=solution),
-								b.get_value('fitted_units', solution=solution)): 
-		try:
-			print(f"{param} = {value:.5f} {unit}")
-		except:
-			print(param, value, unit)
+								b.get_value('fitted_units', solution=solution)):
+		if adopt_twigs is not None and twig not in adopt_twigs:
+			print(f"Not adopting {twig}")
+			continue
 
-def printFittedTwigsConstraints(b: phoebe.Bundle, solution: str, units: dict[str, u.Unit] = {}):
+		try:
+			print(f"{twig} = {value:.5f} {unit}")
+		except:
+			print(twig, value, unit)
+
+def __matchAnyTwig(twig: str, twigs_list: list[str]) -> bool:
+	for refTwig in twigs_list:
+		refComponents = refTwig.split('@')
+		twigComponents = twig.split('@')
+
+		if len(set(refComponents) & set(twigComponents)) != 0:
+			return True
+		
+	return False
+
+def printFittedTwigsConstraints(b: phoebe.Bundle, solution: str, units: dict[str, u.Unit] = {}, adopt_twigs: list[str] = None):
 	for fitTwig in b.get_value('fitted_twigs', solution=solution):
+		if adopt_twigs is not None and not __matchAnyTwig(fitTwig, adopt_twigs):
+			print(f"Not adopting {fitTwig}")
+			continue
+
 		quantity = b.get_quantity(fitTwig)
 		print("C" if b[fitTwig].constrained_by else " ", fitTwig, quantity.to(units.get(fitTwig, quantity.unit)))
 
@@ -159,7 +177,7 @@ def exportCompute(b: phoebe.Bundle, model: str, datasets: list[str], subfolder: 
 	
 def adopt_solution(b: phoebe.Bundle, solution_name:str=None, model_name: str = None,
 					reset_params=False, solution_file:str=None, 
-					run_compute=True, print_sol=True, compute='phoebe01', **compute_kwargs):
+					run_compute=True, print_sol=True, compute='phoebe01', **compute_kwargs) -> None:
 	if solution_file:
 		solution_name = b.import_solution(solution_file, solution=solution_name, overwrite=True).solutions[0]
 

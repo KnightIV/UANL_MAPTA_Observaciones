@@ -7,7 +7,7 @@ import analisis.phoebe_model.utils as gen_utils
 
 AdoptSolutionResult = namedtuple("AdoptSolutionResult", "solutionName computeModelName")
 def adopt_solution(b: phoebe.Bundle, label:str=None, 
-					reset_params=False, solution_file:str=None,
+					reset_params=False, solution_file:str=None, adopt_twigs:list[str]=None,
 					run_compute=True, print_sol=True, compute='phoebe01', **compute_kwargs) -> AdoptSolutionResult:
 	solutionName: str
 	if label is not None:
@@ -19,9 +19,9 @@ def adopt_solution(b: phoebe.Bundle, label:str=None,
 
 	if print_sol:
 		print("Adopted:")
-		gen_utils.printFittedVals(b, solutionName)
+		gen_utils.printFittedVals(b, solutionName, adopt_twigs=adopt_twigs)
 		print("\nOriginal values:")
-		gen_utils.printFittedTwigsConstraints(b, solutionName)
+		gen_utils.printFittedTwigsConstraints(b, solutionName, adopt_twigs=adopt_twigs)
 
 	try:
 		initValues = {}
@@ -29,7 +29,7 @@ def adopt_solution(b: phoebe.Bundle, label:str=None,
 			for twig in b.get_value(qualifier='fitted_twigs', solution=solutionName):
 				initValues[twig] = b.get_quantity(twig)
 
-		b.adopt_solution(solutionName)
+		b.adopt_solution(solutionName, adopt_parameters=adopt_twigs)
 
 		computeModelName = None
 		if run_compute: 
@@ -51,7 +51,7 @@ def optimize_params(b: phoebe.Bundle, fit_twigs: list[str], label: str, export: 
 	abilitatedDatasets = [d for d in b.datasets if b.get_value(qualifier='enabled', dataset=d)]
 	gen_utils.abilitateDatasets(b, datasets, False)
 	
-	saveIterProgress = 1 if export else 0
+	saveIterProgress = 1 if export and optimizer == 'optimizer.nelder_mead' else 0
 	b.add_solver(optimizer, solver=f'opt_{label}', fit_parameters=fit_twigs, overwrite=True, progress_every_niters=saveIterProgress, compute=compute, **solver_kwargs)
 	if export:
 		if not os.path.exists('external-jobs'):
