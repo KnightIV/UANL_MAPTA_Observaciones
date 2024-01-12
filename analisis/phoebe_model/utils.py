@@ -14,8 +14,6 @@ import ipywidgets
 
 GAIA_RAW_PLOT_COLORS = {'lc_gaia_g_raw@dataset':'green', 'lc_gaia_rp_raw@dataset':'red', 'lc_gaia_bp_raw@dataset':'blue',
 						'lc_gaia_g_raw@model':'darkgreen', 'lc_gaia_rp_raw@model':'darkred', 'lc_gaia_bp_raw@model':'darkblue'}
-# GAIA_NORM_PLOT_COLORS = {'lc_gaia_g@dataset':'green', 'lc_gaia_rp@dataset':'red', 'lc_gaia_bp@dataset':'blue',
-# 						'lc_gaia_g@model':'darkgreen', 'lc_gaia_rp@model':'darkred', 'lc_gaia_bp@model':'darkblue'}
 GAIA_NORM_PLOT_COLORS = {'lc_gaia_g_norm@dataset':'green', 'lc_gaia_rp_norm@dataset':'red', 'lc_gaia_bp_norm@dataset':'blue',
 						'lc_gaia_g_norm@model':'darkgreen', 'lc_gaia_rp_norm@model':'darkred', 'lc_gaia_bp_norm@model':'darkblue'}
 
@@ -25,6 +23,8 @@ GAIA_PLOT_COLORS = {'lcGaiaG@dataset':'green', 'lcGaiaRP@dataset':'red', 'lcGaia
 
 ZTF_PLOT_COLORS = {'lcZtfG@dataset': 'yellowgreen', 'lcZtfR@dataset': 'indianred',
 				   'lcZtfG@model': 'seagreen', 'lcZtfR@model': 'maroon'}
+ZTF_TRIMMED_PLOT_COLORS = {'lcZtfGTrimmed@dataset': 'yellowgreen', 'lcZtfRTrimmed@dataset': 'indianred',
+				   'lcZtfGTrimmed@model': 'seagreen', 'lcZtfRTrimmed@model': 'maroon'}
 
 def displayAnims(rows: int, cols: int, *anims: FuncAnimation):
 	plt.rcParams["animation.html"] = "html5"
@@ -42,19 +42,6 @@ def displayAnims(rows: int, cols: int, *anims: FuncAnimation):
 def displayAnim(anim: FuncAnimation):
 	displayAnims(1, 1, anim)
 
-def printFittedVals(b: phoebe.Bundle, solution: str, adopt_twigs: list[str] = None):
-	for twig, value, unit in zip(b.get_value('fitted_twigs', solution=solution),
-								b.get_value('fitted_values', solution=solution),
-								b.get_value('fitted_units', solution=solution)):
-		if adopt_twigs is not None and twig not in adopt_twigs:
-			print(f"Not adopting {twig}")
-			continue
-
-		try:
-			print(f"{twig} = {value:.5f} {unit}")
-		except:
-			print(twig, value, unit)
-
 def __matchAnyTwig(twig: str, twigs_list: list[str]) -> bool:
 	for refTwig in twigs_list:
 		refComponents = refTwig.split('@')
@@ -65,14 +52,23 @@ def __matchAnyTwig(twig: str, twigs_list: list[str]) -> bool:
 		
 	return False
 
+def printFittedVals(b: phoebe.Bundle, solution: str, adopt_twigs: list[str] = None):
+	for twig, value, unit in zip(b.get_value('fitted_twigs', solution=solution),
+								b.get_value('fitted_values', solution=solution),
+								b.get_value('fitted_units', solution=solution)):
+		try:
+			# print(f"{twig} = {value:.5f} {unit}")
+			print(twig, f"{value:.5f}", unit, "(Not adopting)" if adopt_twigs is not None and not __matchAnyTwig(twig, adopt_twigs) else "")
+		except:
+			print(twig, value, unit)
+
 def printFittedTwigsConstraints(b: phoebe.Bundle, solution: str, units: dict[str, u.Unit] = {}, adopt_twigs: list[str] = None):
 	for fitTwig in b.get_value('fitted_twigs', solution=solution):
-		if adopt_twigs is not None and not __matchAnyTwig(fitTwig, adopt_twigs):
-			print(f"Not adopting {fitTwig}")
-			continue
-
 		quantity = b.get_quantity(fitTwig)
-		print("C" if b[fitTwig].constrained_by else " ", fitTwig, quantity.to(units.get(fitTwig, quantity.unit)))
+		print("C" if b[fitTwig].constrained_by else " ", 
+				fitTwig, 
+				quantity.to(units.get(fitTwig, quantity.unit)), 
+				"(Not adopting)" if adopt_twigs is not None and not __matchAnyTwig(fitTwig, adopt_twigs) else "")
 
 def saveBundle(b: phoebe.Bundle, bundleName: str, subfolder: str = None) -> str:
 	if not os.path.exists("bundle-saves"):
@@ -139,27 +135,27 @@ def plotFigSize(b: phoebe.Bundle, figsize: tuple[float, float], **plot_kwargs):
 	fig = plt.figure(figsize=figsize)
 	b.plot(fig=fig, **plot_kwargs)
 
-# TODO: make this return the figures drawn to allow for subsequent operations
-def plotModelResidualsFigsize(b: phoebe.Bundle, figsize: tuple[float, float], datasetGroups: list[list[str] | str], model: str, **plot_kwargs) -> dict[str, Figure]:
+def plotModelResidualsFigsize(b: phoebe.Bundle, figsize: tuple[float, float], datasetGroups: list[list[str] | str], model: str, 
+							  model_kwargs: dict['str', 'str'] = {}, residuals_kwargs: dict['str', 'str'] = {}, **plot_kwargs) -> dict[str, Figure]:
 	"""
 	Plots specified model for the datasets given. Plots dataset(s) with model overlay alongside residuals side-by-side.
 	"""
 	defaultPlotKwargs = {
 		'marker': {'dataset': '.'},
-		'color': GAIA_PLOT_COLORS | GAIA_RAW_PLOT_COLORS | GAIA_NORM_PLOT_COLORS | ZTF_PLOT_COLORS,
+		'color': GAIA_PLOT_COLORS | GAIA_RAW_PLOT_COLORS | GAIA_NORM_PLOT_COLORS | ZTF_PLOT_COLORS | ZTF_TRIMMED_PLOT_COLORS,
 		'legend': True
 	}
 	for key, defaultVal in defaultPlotKwargs.items():
 		plot_kwargs[key] = plot_kwargs.get(key, defaultVal)
 
-	residuals_kwargs = plot_kwargs.copy()
-	residuals_kwargs['marker'] = '.'
+	if 'marker' not in residuals_kwargs:
+		residuals_kwargs['marker'] = '.'
 
 	datasetGroupsFigures = {}
 	for datasets in datasetGroups:
 		fig = plt.figure(figsize=figsize)
-		b.plot(x='phase', model=model, dataset=datasets, axorder=1, fig=fig, s={'dataset':0.008}, **plot_kwargs)
-		b.plot(x='phase', y='residuals', model=model, dataset=datasets, axorder=2, fig=fig, subplot_grid=(1,2), s=0.008, show=True, **residuals_kwargs)
+		b.plot(x='phase', model=model, dataset=datasets, axorder=1, fig=fig, s={'dataset':0.008}, **(model_kwargs | plot_kwargs))
+		b.plot(x='phase', y='residuals', model=model, dataset=datasets, axorder=2, fig=fig, subplot_grid=(1,2), s=0.008, show=True, **(residuals_kwargs | plot_kwargs))
 		datasetGroupsFigures["-".join(datasets)] = fig
 	return datasetGroupsFigures
 
