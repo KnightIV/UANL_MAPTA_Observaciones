@@ -40,7 +40,10 @@ def displayAnims(rows: int, cols: int, *anims: FuncAnimation):
 	display.display(grid)
 
 def displayAnim(anim: FuncAnimation):
-	displayAnims(1, 1, anim)
+	originalBackend = plt.rcParams['backend']
+	plt.rcParams['backend'] = 'Agg'
+	display.display(display.HTML(anim.to_html5_video()))
+	plt.rcParams['backend'] = originalBackend
 
 def __matchAnyTwig(twig: str, twigs_list: list[str]) -> bool:
 	for refTwig in twigs_list:
@@ -67,10 +70,10 @@ def printFittedTwigsConstraints(b: phoebe.Bundle, solution: str, units: dict[str
 		quantity = b.get_quantity(fitTwig)
 		print("C" if b[fitTwig].constrained_by else " ", 
 				fitTwig, 
-				quantity.to(units.get(fitTwig, quantity.unit)), 
+				f"{quantity.to(units.get(fitTwig, quantity.unit)):.5f}", 
 				"(Not adopting)" if adopt_twigs is not None and not __matchAnyTwig(fitTwig, adopt_twigs) else "")
 
-def saveBundle(b: phoebe.Bundle, bundleName: str, subfolder: str = None) -> str:
+def saveBundle(b: phoebe.Bundle, bundleName: str, subfolder: str = None, overwrite: bool = True) -> str:
 	if not os.path.exists("bundle-saves"):
 		os.mkdir("bundle-saves")
 
@@ -80,7 +83,10 @@ def saveBundle(b: phoebe.Bundle, bundleName: str, subfolder: str = None) -> str:
 		os.makedirs(saveFolder, exist_ok=True)
 
 	if os.path.exists(os.path.join(saveFolder, bundleName)):
-		print(f"CAUTION: overwriting {os.path.join(saveFolder, bundleName)}")
+		if overwrite:
+			print(f"CAUTION: overwriting {os.path.join(saveFolder, bundleName)}")
+		else:
+			print(f"NOT OVERWRITING: {os.path.join(saveFolder, bundleName)} bundle already exists.")
 	
 	return b.save(f"{saveFolder}/{bundleName}")
 
@@ -94,7 +100,12 @@ def resetAtmosphere(b: phoebe.Bundle):
 
 def genAnimatedMesh(b: phoebe.Bundle, logger=None, meshDataset="mesh01", fc='teffs', **plot_kwargs):
 	if logger: logger.setLevel('ERROR')
-	_, mplfig = b.plot(dataset=meshDataset, kind='mesh', fc=fc, ec='face', animate=True, draw_sidebars=True, **plot_kwargs)
+	default_kwargs = {
+		"draw_sidebars": True,
+		"color": "inferno"
+	}
+
+	_, mplfig = b.plot(dataset=meshDataset, kind='mesh', fc=fc, ec='face', animate=True, **(default_kwargs | plot_kwargs))
 	if logger: logger.setLevel('WARNING')
 	return mplfig
 
@@ -143,19 +154,19 @@ def plotModelResidualsFigsize(b: phoebe.Bundle, figsize: tuple[float, float], da
 	defaultPlotKwargs = {
 		'marker': {'dataset': '.'},
 		'color': GAIA_PLOT_COLORS | GAIA_RAW_PLOT_COLORS | GAIA_NORM_PLOT_COLORS | ZTF_PLOT_COLORS | ZTF_TRIMMED_PLOT_COLORS,
-		'legend': True
+		'legend': True,
+		'ls': {'model': 'solid'}
 	}
 	for key, defaultVal in defaultPlotKwargs.items():
 		plot_kwargs[key] = plot_kwargs.get(key, defaultVal)
 
-	if 'marker' not in residuals_kwargs:
-		residuals_kwargs['marker'] = '.'
+	residuals_kwargs['marker'] = '.'
 
 	datasetGroupsFigures = {}
 	for datasets in datasetGroups:
 		fig = plt.figure(figsize=figsize)
-		b.plot(x='phase', model=model, dataset=datasets, axorder=1, fig=fig, s={'dataset':0.008}, **(model_kwargs | plot_kwargs))
-		b.plot(x='phase', y='residuals', model=model, dataset=datasets, axorder=2, fig=fig, subplot_grid=(1,2), s=0.008, show=True, **(residuals_kwargs | plot_kwargs))
+		b.plot(x='phase', model=model, dataset=datasets, axorder=1, fig=fig, s={'dataset':0.008}, **(plot_kwargs | model_kwargs))
+		b.plot(x='phase', y='residuals', model=model, dataset=datasets, axorder=2, fig=fig, subplot_grid=(1,2), s=0.008, show=True, **(plot_kwargs | residuals_kwargs))
 		datasetGroupsFigures["-".join(datasets)] = fig
 	return datasetGroupsFigures
 
@@ -242,11 +253,12 @@ def printChi2(b: phoebe.Bundle, model: str):
 			print('\t\t', gd, "-", np.sum(b.calculate_chi2(model=model, dataset=gd)))
 	except: pass
 
-	try:
-		print('\t', "ZTF -", np.sum(b.calculate_chi2(model=model, dataset=ztfDatasets)))
-		for zd in ztfDatasets:
+	print('\t', "ZTF -", np.sum(b.calculate_chi2(model=model, dataset=ztfDatasets)))
+	for zd in ztfDatasets:
+		try:
 			print('\t\t', zd, "-", np.sum(b.calculate_chi2(model=model, dataset=zd)))
-	except: pass
+		except: 
+			print("\t\t", zd, "Not found in model")
 
 def printAllModelsChi2(b: phoebe.Bundle):
 	for m in b.models:
