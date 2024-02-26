@@ -35,6 +35,9 @@ def adopt_solution(b: phoebe.Bundle, label:str=None,
 		if run_compute: 
 			computeModelName = f"opt_{label}_model"
 			b.run_compute(model=computeModelName, compute=compute, **compute_kwargs, overwrite=True)
+	except: # reset values if an exception occurs, regardless of reset_params value
+		for twig, val in initValues.items():
+			b.set_value(twig, value=val)
 	finally:
 		if reset_params:
 			for twig, val in initValues.items():
