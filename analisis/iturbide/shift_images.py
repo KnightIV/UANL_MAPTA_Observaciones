@@ -1,5 +1,3 @@
-# Plate solving
-
 import os
 import ccdproc
 import subprocess
@@ -11,16 +9,19 @@ from multiprocessing import Pool, Lock, cpu_count
 from ccdproc import wcs_project
 from astropy.wcs import WCS
 from astropy.io import fits
+from astropy.coordinates import SkyCoord, ICRS
+from astropy import units as u
 
 from astropy import log
 log.setLevel('ERROR')
 
-OBSV_DATE = datetime.date(year=2022, month=11, day=5).strftime("%Y-%m-%d")
 MAX_PARALLEL = max(cpu_count() - 2, 2)
 SOLVE_CMD_TEMPLATE = 'solve-field --fits-image --no-plots --timestamp --new-fits "{solvedOutPath}" --cpulimit 180 -D "{tempFiles}" "{inputPath}" --overwrite'
-BASE_DATA_DIR = "/run/media/ramon/ROG_Data/Tesis/IturbideDatos/ATOJ339.9469+45.1464/"
-DATA_DIR = os.path.join(BASE_DATA_DIR, "Objeto")
+# BASE_DATA_DIR = "/run/media/ramon/ROG_Data/Tesis/IturbideDatos/ATOJ339.9469+45.1464/"
+DATA_DIR = "/run/media/ramon/ROG_Data/Tesis/IturbideDatos/Ensenada Corrections/ATOJ339.9469+45.1464"
 CCD_KWARGS = {'unit': 'adu'}
+
+OBJ_COORD = SkyCoord(339.94692562872, 45.14639621713, unit=u.deg, frame=ICRS) # objective variable star coordinates
 
 def getMkdir(dirPath: str) -> str:
 	if not os.path.exists(dirPath):
@@ -30,7 +31,7 @@ def getMkdir(dirPath: str) -> str:
 LOGGING_LOCK = Lock()
 def printToLog(msg: str):
 	with LOGGING_LOCK:
-		with open(os.path.join(BASE_DATA_DIR, f"{OBSV_DATE}.log"), "a+") as logFile:
+		with open(os.path.join(DATA_DIR, f"shifter.log"), "a+") as logFile:
 			logFile.write(f"[{datetime.datetime.now()}] {msg}\n")
 
 def plateSolveFile(correctedFile: str, correctedDir: str):
@@ -44,7 +45,6 @@ def plateSolveFile(correctedFile: str, correctedDir: str):
 		printToLog(f"Failed to plate solve {correctedFile}")
 
 def plateSolve(correctedFiles: list[str], correctedDir: str):
-	# print(f"{os.getpid()} {correctedFiles[0]} {len(correctedFiles)}\n")
 	printToLog(f"[{os.getpid()}] Begin plate solving")
 	for cFile in correctedFiles:
 		plateSolveFile(cFile, correctedDir)
@@ -57,20 +57,26 @@ class SolveCaller:
 	def __call__(self, imagesChunks):
 		plateSolve(imagesChunks, self.correctedDir)
 
-correctedDir = os.path.join(DATA_DIR, "corrected") # output files from previous cell
+correctedDir = DATA_DIR # cleaned images (bias, dark, flat subtracted) directory
 imagesChunks = np.array_split(os.listdir(correctedDir), MAX_PARALLEL)
 with Pool(MAX_PARALLEL) as pool:
 	pool.map(SolveCaller(correctedDir), imagesChunks)
 
 # Shift plate solved images. Will also only take the first header from the FITS file to allow them to work in IRAF. 
-# This step should NOT be required once every part of the analysis is migrated to use astropy.
-
 targetWcs: WCS = None
-correctedDir = os.path.join(DATA_DIR, "corrected")
 solvedFitsDir = os.path.join(correctedDir, "solved-fits")
+fixedSolvedFitsDir = getMkdir(os.path.join(correctedDir, "fixed-solved-fits"))
 shiftedDir = getMkdir(os.path.join(correctedDir, "iraf-shifted"))
 
-rawImages = ccdproc.ImageFileCollection(solvedFitsDir)
+# fixing 'broken' header entries (from work with Dr. Raul Michel to use with his photometry pipeline)
+for f in os.listdir(solvedFitsDir):
+	with fits.open(os.path.join(solvedFitsDir, f)) as hdul:
+		hdul[0].header['RA'] = OBJ_COORD.ra.value
+		hdul[0].header['DEC'] = OBJ_COORD.dec.value
+		hdul[0].verify('fix')
+		hdul.writeto(os.path.join(fixedSolvedFitsDir, f))
+
+rawImages = ccdproc.ImageFileCollection(fixedSolvedFitsDir)
 for img, img_fname in rawImages.ccds(ccd_kwargs=CCD_KWARGS, return_fname=True):
 	shiftedResultPath = os.path.join(shiftedDir, f"s_{img_fname}")
 	if not targetWcs:
@@ -80,7 +86,5 @@ for img, img_fname in rawImages.ccds(ccd_kwargs=CCD_KWARGS, return_fname=True):
 		img.write(shiftedResultPath, overwrite=True)
 	else:
 		shiftedImg = wcs_project(img, targetWcs)
-		primaryImg = shiftedImg.to_hdu()[0] # Takes only the science image from the HDU list, ignoring the mask
+		primaryImg = shiftedImg.to_hdu()[0] # Takes only the science image from the HDU list, ignoring the mask, for use in IRAF
 		primaryImg.writeto(shiftedResultPath, overwrite=True)
-
-log.setLevel("INFO")
