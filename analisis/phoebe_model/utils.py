@@ -164,8 +164,13 @@ def plotModelResidualsFigsize(b: phoebe.Bundle, figsize: tuple[float, float], da
 
 	datasetGroupsFigures = {}
 	for datasets in datasetGroups:
+		maxFlux = 0
+		for d in datasets:
+			maxFlux = max([maxFlux, max(b.get_value(qualifier='fluxes', context='dataset', dataset=d))])
+		maxFluxScale = 1 + 0.12*(len(datasets))
+
 		fig = plt.figure(figsize=figsize)
-		b.plot(x='phase', model=model, dataset=datasets, axorder=1, fig=fig, s={'dataset':0.008, 'model': 0.01}, **(plot_kwargs | model_kwargs))
+		b.plot(x='phase', model=model, dataset=datasets, axorder=1, fig=fig, s={'dataset':0.008, 'model': 0.01}, ylim=(None, maxFluxScale*maxFlux), **(plot_kwargs | model_kwargs))
 		b.plot(x='phase', y='residuals', model=model, dataset=datasets, axorder=2, fig=fig, subplot_grid=(1,2), s=0.008, show=True, **(plot_kwargs | residuals_kwargs))
 		datasetGroupsFigures["-".join(datasets)] = fig
 	return datasetGroupsFigures
