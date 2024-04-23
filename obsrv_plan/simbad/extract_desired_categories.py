@@ -28,12 +28,24 @@ def __extractCategories(filePath: str, includeCategories: set[str] | None) -> di
 	for i in rawData.index:
 		simbadType = rawData.loc[i, 'type']
 
+		try:
+			v_mag = float(rawData.loc[i, 'v_mag'])
+		except ValueError:
+			v_mag = rawData.loc[i, 'v_mag']
+
+		try:
+			gaia_g_mag = float(rawData.loc[i, 'gaia_g_mag'])
+		except ValueError:
+			gaia_g_mag = rawData.loc[i, 'gaia_g_mag']
+
 		categoryObjs = allCategories.get(simbadType, [])
 		categoryObjs.append({
 			'ra': rawData.loc[i, 'ra'],
 			'dec': rawData.loc[i, 'dec'],
 			'gaia_sourceid': str(rawData.loc[i, 'gaia_sourceId']),
-			'id': rawData.loc[i, 'id']
+			'id': rawData.loc[i, 'id'],
+			'v_mag': v_mag,
+			'gaia_g_mag': gaia_g_mag
 		})
 		allCategories[simbadType] = categoryObjs
 
