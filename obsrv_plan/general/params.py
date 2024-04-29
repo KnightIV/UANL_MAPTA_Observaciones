@@ -20,8 +20,8 @@ WORKING_DIR = "/home/ramon/uanl/Tesis/Backup Data/Gaia Query Results/sdss-3_4"
 DATA_FILE_PATH = join(WORKING_DIR, "SDSS 3_4 Filter GDR3-result.csv")
 
 TIMEZONE = timezone(timedelta(hours=-6))
-OBSV_START_DATETIME = datetime.combine(
-		date(year=2024, month=4, day=26), time(hour=21, minute=0, tzinfo=TIMEZONE))
+# OBSV_START_DATETIME = datetime.combine(date(year=2024, month=4, day=26), time(hour=21, minute=0, tzinfo=TIMEZONE))
+OBSV_START_DATETIME = datetime.combine(date(year=2024, month=4, day=27), time(hour=2, minute=0, tzinfo=TIMEZONE))
 RESULT_DIR = join(WORKING_DIR, OBSV_START_DATETIME.strftime("%Y%m%d"))
 
 SIMBAD_VOT_RESULTS = join(RESULT_DIR, "simbad-raw_vot")
