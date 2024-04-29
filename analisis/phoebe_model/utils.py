@@ -21,10 +21,15 @@ GAIA_NORM_PLOT_COLORS = {'lc_gaia_g_norm@dataset':'green', 'lc_gaia_rp_norm@data
 GAIA_PLOT_COLORS = {'lcGaiaG@dataset':'green', 'lcGaiaRP@dataset':'red', 'lcGaiaBP@dataset':'blue',
 						'lcGaiaG@model':'darkgreen', 'lcGaiaRP@model':'darkred', 'lcGaiaBP@model':'darkblue'}
 
-ZTF_PLOT_COLORS = {'lcZtfG@dataset': 'yellowgreen', 'lcZtfR@dataset': 'indianred',
+# ZTF_PLOT_COLORS = {'lcZtfG@dataset': 'yellowgreen', 'lcZtfR@dataset': 'indianred',
+# 				   'lcZtfG@model': 'seagreen', 'lcZtfR@model': 'maroon'}
+ZTF_PLOT_COLORS = {'lcZtfG@dataset': 'lightgreen', 'lcZtfR@dataset': 'lightpink',
 				   'lcZtfG@model': 'seagreen', 'lcZtfR@model': 'maroon'}
 ZTF_TRIMMED_PLOT_COLORS = {'lcZtfGTrimmed@dataset': 'yellowgreen', 'lcZtfRTrimmed@dataset': 'indianred',
 				   'lcZtfGTrimmed@model': 'seagreen', 'lcZtfRTrimmed@model': 'maroon'}
+
+ITURBIDE_PLOT_COLORS = {'lcIturbide@dataset': 'cornflowerblue', 'lcIturbide@model': 'navy',
+						'lc_iturbide_norm@dataset': 'cornflowerblue', 'lc_iturbide_norm@model': 'navy'}
 
 def displayAnims(rows: int, cols: int, *anims: FuncAnimation):
 	plt.rcParams["animation.html"] = "html5"
@@ -153,7 +158,7 @@ def plotModelResidualsFigsize(b: phoebe.Bundle, figsize: tuple[float, float], da
 	"""
 	defaultPlotKwargs = {
 		'marker': {'dataset': '.'},
-		'color': GAIA_PLOT_COLORS | GAIA_RAW_PLOT_COLORS | GAIA_NORM_PLOT_COLORS | ZTF_PLOT_COLORS | ZTF_TRIMMED_PLOT_COLORS,
+		'color': GAIA_PLOT_COLORS | GAIA_RAW_PLOT_COLORS | GAIA_NORM_PLOT_COLORS | ZTF_PLOT_COLORS | ZTF_TRIMMED_PLOT_COLORS | ITURBIDE_PLOT_COLORS,
 		'legend': True,
 		'ls': {'model': 'solid'}
 	}
