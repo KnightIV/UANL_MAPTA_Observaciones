@@ -12,7 +12,7 @@ import csv
 import numpy as np
 
 import pandas as pd
-import dask.dataframe as dd
+# import dask.dataframe as dd
 
 import astropy.units as u
 from math import ceil, floor
@@ -57,10 +57,13 @@ def __processSubset(df_path: str):
 		RA_INDEX = header.index('J2000_ra_prop')
 		DEC_INDEX = header.index('J2000_dec_prop')
 		G_MAG_INDEX = header.index('phot_g_mean_mag')
+		print(RA_INDEX, DEC_INDEX, G_MAG_INDEX)
 		columns = header
 
 		obsv_targets = pd.DataFrame(columns=columns)
 		for row in reader:
+			if len(row) == 0:
+				continue # empty row uj
 			if rowsProcessed % 100 == 0:
 				print(f"{pid}: {rowsProcessed} rows processed")
 			(mer_time, can_obsv) = __is_observable(float(row[RA_INDEX]), float(row[DEC_INDEX]), float(row[G_MAG_INDEX]))
