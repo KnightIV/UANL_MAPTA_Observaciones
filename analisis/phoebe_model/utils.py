@@ -17,9 +17,9 @@ GAIA_RAW_PLOT_COLORS = {'lc_gaia_g_raw@dataset':'green', 'lc_gaia_rp_raw@dataset
 GAIA_NORM_PLOT_COLORS = {'lc_gaia_g_norm@dataset':'green', 'lc_gaia_rp_norm@dataset':'red', 'lc_gaia_bp_norm@dataset':'blue',
 						'lc_gaia_g_norm@model':'darkgreen', 'lc_gaia_rp_norm@model':'darkred', 'lc_gaia_bp_norm@model':'darkblue'}
 
-# for re-named datasets in sampler
+# include re-named datasets
 GAIA_PLOT_COLORS = {'lcGaiaG@dataset':'green', 'lcGaiaRP@dataset':'red', 'lcGaiaBP@dataset':'blue',
-						'lcGaiaG@model':'darkgreen', 'lcGaiaRP@model':'darkred', 'lcGaiaBP@model':'darkblue'}
+						'lcGaiaG@model':'darkgreen', 'lcGaiaRP@model':'darkred', 'lcGaiaBP@model':'darkblue'} | GAIA_NORM_PLOT_COLORS | GAIA_RAW_PLOT_COLORS
 
 # ZTF_PLOT_COLORS = {'lcZtfG@dataset': 'yellowgreen', 'lcZtfR@dataset': 'indianred',
 # 				   'lcZtfG@model': 'seagreen', 'lcZtfR@model': 'maroon'}
@@ -60,13 +60,14 @@ def __matchAnyTwig(twig: str, twigs_list: list[str]) -> bool:
 		
 	return False
 
-def printFittedVals(b: phoebe.Bundle, solution: str, adopt_twigs: list[str] = None):
+def printFittedVals(b: phoebe.Bundle, solution: str, adopt_twigs: list[str] = None, units: dict[str, u.Unit] = {}):
 	for twig, value, unit in zip(b.get_value('fitted_twigs', solution=solution),
 								b.get_value('fitted_values', solution=solution),
 								b.get_value('fitted_units', solution=solution)):
 		try:
-			# print(f"{twig} = {value:.5f} {unit}")
-			print(twig, f"{value:.5f}", unit, "(Not adopting)" if adopt_twigs is not None and not __matchAnyTwig(twig, adopt_twigs) else "")
+			originalUnit = u.Unit(unit)
+			quantity = value * originalUnit
+			print(twig, f"{quantity.to(units.get(twig, originalUnit)).value:.5f}", units.get(twig, originalUnit).to_string(), "(Not adopting)" if adopt_twigs is not None and not __matchAnyTwig(twig, adopt_twigs) else "")
 		except:
 			print(twig, value, unit)
 
@@ -144,8 +145,12 @@ def plotEnabledData(b: phoebe.Bundle, **plot_kwargs):
 	b.plot(kind='lc', dataset=getEnabledDatasets(b), marker='.', show=True, legend=True, **plot_kwargs)
 	
 def phasePlotEnabledData(b: phoebe.Bundle, **plot_kwargs):
+	default_kwargs = {
+		'color': GAIA_PLOT_COLORS | ZTF_PLOT_COLORS | ZTF_TRIMMED_PLOT_COLORS | ITURBIDE_PLOT_COLORS,
+		's': 0.008
+	}
 	period = b.get_quantity(qualifier='period', component='binary')
-	plotEnabledData(b, x='phase', title=f"$P_{{orb}}$ = {period:.3f} | {period.to(u.hour):.3f}", draw_title=True, **plot_kwargs)
+	plotEnabledData(b, x='phase', context='dataset', title=f"$P_{{orb}}$ = {period:.3f} | {period.to(u.hour):.3f}", draw_title=True, **(plot_kwargs | default_kwargs))
 
 def plotFigSize(b: phoebe.Bundle, figsize: tuple[float, float], **plot_kwargs):
 	fig = plt.figure(figsize=figsize)
@@ -158,7 +163,7 @@ def plotModelResidualsFigsize(b: phoebe.Bundle, figsize: tuple[float, float], da
 	"""
 	defaultPlotKwargs = {
 		'marker': {'dataset': '.'},
-		'color': GAIA_PLOT_COLORS | GAIA_RAW_PLOT_COLORS | GAIA_NORM_PLOT_COLORS | ZTF_PLOT_COLORS | ZTF_TRIMMED_PLOT_COLORS | ITURBIDE_PLOT_COLORS,
+		'color': GAIA_PLOT_COLORS | ZTF_PLOT_COLORS | ZTF_TRIMMED_PLOT_COLORS | ITURBIDE_PLOT_COLORS,
 		'legend': True,
 		'ls': {'model': 'solid'}
 	}
@@ -172,7 +177,7 @@ def plotModelResidualsFigsize(b: phoebe.Bundle, figsize: tuple[float, float], da
 		maxFlux = 0
 		for d in datasets:
 			maxFlux = max([maxFlux, max(b.get_value(qualifier='fluxes', context='dataset', dataset=d))])
-		maxFluxScale = 1 + 0.12*(len(datasets))
+		maxFluxScale = 1 + 0.17*(len(datasets))
 
 		fig = plt.figure(figsize=figsize)
 		b.plot(x='phase', model=model, dataset=datasets, axorder=1, fig=fig, s={'dataset':0.008, 'model': 0.01}, ylim=(None, maxFluxScale*maxFlux), **(plot_kwargs | model_kwargs))
@@ -256,6 +261,8 @@ def printChi2(b: phoebe.Bundle, model: str):
 	try:
 		print('\t', "Iturbide (Full) (Norm) -", np.sum(b.calculate_chi2(model=model, dataset='lc_iturbide_norm')))
 	except: pass
+
+	print("------------------------------------------------")
 
 	try:
 		print('\t', "Gaia (Norm) -", np.sum(b.calculate_chi2(model=model, dataset=normGaiaDatasets)))
