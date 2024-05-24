@@ -106,10 +106,12 @@ def saveBundle(b: phoebe.Bundle, bundleName: str, subfolder: str = None, overwri
 	
 	return jsonFile
 
-def loadBundle(bundleName: str, subfolder: str = None) -> phoebe.Bundle:
+def loadBundle(bundleName: str, subfolder: str = None, parentFolder: str = "") -> phoebe.Bundle:
 	saveFolder = "bundle-saves"
+	if parentFolder:
+		saveFolder = f"{parentFolder}/bundle-saves"
 	if subfolder:
-		saveFolder = f"bundle-saves/{subfolder}"
+		saveFolder = f"{saveFolder}/{subfolder}"
 
 	tempJsonFile = f"{saveFolder}/{bundleName}.json"
 	with gzip.open(f"{saveFolder}/{bundleName}.json.gz", 'rb') as f_in:
