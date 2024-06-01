@@ -19,8 +19,9 @@ GAIA_NORM_PLOT_COLORS = {'lc_gaia_g_norm@dataset':'green', 'lc_gaia_rp_norm@data
 						'lc_gaia_g_norm@model':'darkgreen', 'lc_gaia_rp_norm@model':'darkred', 'lc_gaia_bp_norm@model':'darkblue'}
 
 # include re-named datasets
-GAIA_PLOT_COLORS = {'lcGaiaG@dataset':'green', 'lcGaiaRP@dataset':'red', 'lcGaiaBP@dataset':'blue',
-						'lcGaiaG@model':'darkgreen', 'lcGaiaRP@model':'darkred', 'lcGaiaBP@model':'darkblue'} | GAIA_NORM_PLOT_COLORS | GAIA_RAW_PLOT_COLORS
+GAIA_PLOT_COLORS = ({'lcGaiaG@dataset':'green', 'lcGaiaRP@dataset':'red', 'lcGaiaBP@dataset':'blue',
+						'lcGaiaG@model':'darkgreen', 'lcGaiaRP@model':'darkred', 'lcGaiaBP@model':'darkblue'}
+					| GAIA_NORM_PLOT_COLORS | GAIA_RAW_PLOT_COLORS)
 
 # ZTF_PLOT_COLORS = {'lcZtfG@dataset': 'yellowgreen', 'lcZtfR@dataset': 'indianred',
 # 				   'lcZtfG@model': 'seagreen', 'lcZtfR@model': 'maroon'}

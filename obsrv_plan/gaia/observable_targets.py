@@ -12,7 +12,7 @@ import csv
 import numpy as np
 
 import pandas as pd
-# import dask.dataframe as dd
+import dask.dataframe as dd
 
 import astropy.units as u
 from math import ceil, floor
@@ -23,7 +23,10 @@ from astroplan import Observer
 from astropy.coordinates import SkyCoord
 from astropy.time import Time, TimeDelta
 
-@static_vars(obsv=Observer(longitude=-99.895328*u.deg, latitude=24.75521 * u.deg, elevation=2400*u.m, name="Iturbide", timezone=TIMEZONE))
+@static_vars(obsv=Observer(name="Iturbide", timezone=TIMEZONE,
+					longitude=-99.895328*u.deg,
+					latitude=24.75521 * u.deg,
+					elevation=2400*u.m))
 def __is_observable(ra, dec, g_mag):
 	ITURBIDE_OBSV = __is_observable.obsv
 	FMT_STR = "%Y-%m-%dT%H:%M:%S"
@@ -39,7 +42,7 @@ def __is_observable(ra, dec, g_mag):
 		target=target)
 
 	MER_TOLERANCE = TimeDelta(val=timedelta(hours=3))
-	return (mer_time, 
+	return (mer_time,
 			ITURBIDE_OBSV.is_night(time=mer_time, horizon=-6 * u.deg) and
 				ITURBIDE_OBSV.target_is_up(target=target, time=mer_time, horizon=-6 * u.deg) and
 				np.any(ideal_mer_time.isclose(other=mer_time, atol=MER_TOLERANCE)) and
@@ -48,7 +51,7 @@ def __is_observable(ra, dec, g_mag):
 def __processSubset(df_path: str):
 	pid = os.getpid()
 	printToLog(f"{pid}: Begin processing {df_path}", print_console=True)
-	
+
 	rowsProcessed = 0
 	obsv_targets: pd.DataFrame
 	with open(df_path, 'r') as csv_file:
@@ -63,7 +66,7 @@ def __processSubset(df_path: str):
 		obsv_targets = pd.DataFrame(columns=columns)
 		for row in reader:
 			if len(row) == 0:
-				continue # empty row uj
+				continue # empty row
 			if rowsProcessed % 100 == 0:
 				print(f"{pid}: {rowsProcessed} rows processed")
 			(mer_time, can_obsv) = __is_observable(float(row[RA_INDEX]), float(row[DEC_INDEX]), float(row[G_MAG_INDEX]))
@@ -104,7 +107,7 @@ def gaiaObservableTargets():
 	print(f"Found total {len(obsv_targets)} visible objects")
 	obsv_targets = obsv_targets.sort_values(by=['dec'])
 	for tgts in np.array_split(obsv_targets, MAX_PARALLEL):
-		__exportTargets(tgts)	
+		__exportTargets(tgts)
 
 if __name__ == "__main__":
 	gaiaObservableTargets()
