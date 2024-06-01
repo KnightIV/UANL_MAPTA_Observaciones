@@ -5,6 +5,7 @@
 *.json
 *.vot
 *.done
+.idea
 **/dask-worker-space
 **/.ipynb_checkpoints
 analisis/phoebe_model/bundle-saves

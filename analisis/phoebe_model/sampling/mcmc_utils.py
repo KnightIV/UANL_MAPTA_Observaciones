@@ -8,11 +8,15 @@ import matplotlib.pyplot as plt
 
 import analisis.phoebe_model.utils as gen_utils
 
-def exportSampler(b: phoebe.Bundle, sampler_solver: str, datasets: list[str], subfolder: str = None, **solver_kwargs) -> None:
+def __createExternalJobsFolder(subfolder: str) -> str:
 	exportFolder = "external-jobs"
 	if subfolder is not None:
 		exportFolder = os.path.join(exportFolder, subfolder)
 	os.makedirs(exportFolder, exist_ok=True)
+	return exportFolder
+
+def exportSampler(b: phoebe.Bundle, sampler_solver: str, datasets: list[str], subfolder: str = None, **solver_kwargs) -> None:
+	exportFolder = __createExternalJobsFolder(subfolder)
 
 	prevEnabledDatasets = [d for d in b.datasets if b.get_value(qualifier='enabled', dataset=d)]
 	gen_utils.abilitateDatasets(b, datasets, False)
@@ -20,16 +24,13 @@ def exportSampler(b: phoebe.Bundle, sampler_solver: str, datasets: list[str], su
 		b.add_solver('sampler.emcee', solver=sampler_solver, overwrite=True, **solver_kwargs)
 		exportFilePath = os.path.join(exportFolder, f"{sampler_solver}.ecpy")
 		resultsFilePath = os.path.join("results", sampler_solver)
-		fname, out_fname = b.export_solver(script_fname=exportFilePath, out_fname=resultsFilePath, solver=sampler_solver, solution=f"{sampler_solver}_solution")
+		fname, out_fname = b.export_solver(script_fname=exportFilePath, out_fname=resultsFilePath, solver=sampler_solver, solution=f"{sampler_solver}_solution", overwrite=True)
 		print(sampler_solver, fname, out_fname, sep=" | ")
 	finally:
 		gen_utils.abilitateDatasets(b, prevEnabledDatasets)
 
 def continueSampler(b: phoebe.Bundle, solver: str, prev_solution: str, continuation_label: str, datasets: list[str], subfolder: str = None, **solver_kwargs) -> None:
-	exportFolder = "external-jobs"
-	if subfolder is not None:
-		exportFolder = os.path.join(exportFolder, subfolder)
-	os.makedirs(exportFolder, exist_ok=True)
+	exportFolder = __createExternalJobsFolder(subfolder)
 
 	prevEnabledDatasets = [d for d in b.datasets if b.get_value(qualifier='enabled', dataset=d)]
 	gen_utils.abilitateDatasets(b, datasets, False)
@@ -46,14 +47,19 @@ def continueSampler(b: phoebe.Bundle, solver: str, prev_solution: str, continuat
 def plotSamplerAcceptanceFractions(b: phoebe.Bundle, sampler_solution: str) -> None:
 	nwalkers = b.get_value(qualifier='nwalkers', solution=sampler_solution)
 
-	plt.figure(figsize=(15, 7))
+	plt.figure(figsize=(22, 7))
 	walkersIds = list(map(lambda wid: str(wid), range(0, nwalkers)))
-	plt.bar(x=walkersIds, height=b.get_value(qualifier='acceptance_fractions', solution=sampler_solution))
+	acceptanceFracs = b.get_value(qualifier='acceptance_fractions', solution=sampler_solution)
+	passRate = len(acceptanceFracs[(acceptanceFracs >= 0.4) & (acceptanceFracs <= 0.8)]) / len(acceptanceFracs)
+	for w_id, ac_frac in zip(walkersIds, acceptanceFracs):
+		plt.bar(x=w_id, height=ac_frac, color=('b' if 0.4 <= ac_frac <= 0.8 else 'r'))
+
 	plt.ylim(0, 1)
 	plt.xlim(-1, nwalkers + 1)
+	plt.xticks(rotation=45)
 
 	plt.fill_between(list(range(-1, len(walkersIds) + 1)), 0.4, 0.8, color='goldenrod', alpha=0.4, label="Desired range")
-	plt.title(f"{sampler_solution} Acceptance Fractions")
+	plt.title(f"{sampler_solution} Acceptance Fractions | {passRate*100:.2f}% passing rate")
 	plt.legend()
 	plt.show()
 	
@@ -125,3 +131,11 @@ def emceeConvergenceTest(b: phoebe.Bundle, solution: str, plot_twigs=[]):
 	# 		print("geweke drift (z=%.1f) detected for parameter %d" % (geweke_z, i+1))
 	# 		converged = False
 	# 		# you can plot histograms of a and b to visualise`
+
+def printParameterAutocorrTimes(b: phoebe.Bundle, solution: str):
+	numIterations = b.get_value(qualifier='niters', solution=solution)
+
+	print(f"Parameter autocorrelation times | Iterations: {numIterations}")
+	print('-------------------------------------')
+	for twig, autocorr_time in zip(b.get_value(qualifier='fitted_twigs', solution=solution), b.get_value(qualifier='autocorr_times', solution=solution)):
+		print(twig, autocorr_time, '|', numIterations / autocorr_time)
