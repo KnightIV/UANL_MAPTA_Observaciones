@@ -56,7 +56,7 @@ def plotSamplerAcceptanceFractions(b: phoebe.Bundle, sampler_solution: str) -> N
 
 	plt.ylim(0, 1)
 	plt.xlim(-1, nwalkers + 1)
-	plt.xticks(rotation=45)
+	plt.xticks(rotation=45, fontsize=7)
 
 	plt.fill_between(list(range(-1, len(walkersIds) + 1)), 0.4, 0.8, color='goldenrod', alpha=0.4, label="Desired range")
 	plt.title(f"{sampler_solution} Acceptance Fractions | {passRate*100:.2f}% passing rate")
