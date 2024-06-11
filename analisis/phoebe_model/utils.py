@@ -76,10 +76,16 @@ def printFittedVals(b: phoebe.Bundle, solution: str, adopt_twigs: list[str] = No
 def printFittedTwigsConstraints(b: phoebe.Bundle, solution: str, units: dict[str, u.Unit] = {}, adopt_twigs: list[str] = None):
 	for fitTwig in b.get_value('fitted_twigs', solution=solution):
 		quantity = b.get_quantity(fitTwig)
-		print("C" if b[fitTwig].constrained_by else " ", 
-				fitTwig, 
-				f"{quantity.to(units.get(fitTwig, quantity.unit)):.5f}", 
-				"(Not adopting)" if adopt_twigs is not None and not __matchAnyTwig(fitTwig, adopt_twigs) else "")
+		try:
+			print("C" if b[fitTwig].constrained_by else " ",
+					fitTwig,
+					f"{quantity.to(units.get(fitTwig, quantity.unit)):.5f}",
+					"(Not adopting)" if adopt_twigs is not None and not __matchAnyTwig(fitTwig, adopt_twigs) else "")
+		except:
+			print("C" if b[fitTwig].constrained_by else " ",
+				  fitTwig,
+				  quantity,
+				  "(Not adopting)" if adopt_twigs is not None and not __matchAnyTwig(fitTwig, adopt_twigs) else "")
 
 def saveBundle(b: phoebe.Bundle, bundleName: str, subfolder: str = None, overwrite: bool = True, compact: bool = True, compress: bool = True) -> str:
 	if not os.path.exists("bundle-saves"):
@@ -126,10 +132,12 @@ def loadBundle(bundleName: str, subfolder: str = None, parentFolder: str = "") -
 def avoidAtmosphereErrors(b: phoebe.Bundle):
 	b.set_value_all(qualifier='ld_mode', value='manual') # original value = interp
 	b.set_value_all(qualifier='ld_mode_bol', value='manual') # original value = lookup
+	b.set_value_all(qualifier='atm', value='blackbody') # original value = ck2004
 
 def resetAtmosphere(b: phoebe.Bundle):
 	b.set_value_all(qualifier='ld_mode', value='interp') # original value = interp
 	b.set_value_all(qualifier='ld_mode_bol', value='lookup') # original value = lookup
+	b.set_value_all(qualifier='atm', value='ck2004')  # original value = ck2004
 
 def genAnimatedMesh(b: phoebe.Bundle, logger=None, meshDataset="mesh01", fc='teffs', **plot_kwargs):
 	if logger: logger.setLevel('ERROR')
@@ -226,7 +234,8 @@ def exportCompute(b: phoebe.Bundle, model: str, datasets: list[str], subfolder: 
 	
 def adopt_solution(b: phoebe.Bundle, solution_name:str=None, model_name: str = None,
 					reset_params=False, solution_file:str=None, 
-					run_compute=True, print_sol=True, compute='phoebe01', **compute_kwargs) -> None:
+					run_compute=True, print_sol=True, compute='phoebe01',
+				   	avoid_nans=True, **compute_kwargs) -> None:
 	if solution_file:
 		solution_name = b.import_solution(solution_file, solution=solution_name, overwrite=True).solutions[0]
 
@@ -242,7 +251,13 @@ def adopt_solution(b: phoebe.Bundle, solution_name:str=None, model_name: str = N
 			for twig in b.get_value(qualifier='fitted_twigs', solution=solution_name):
 				initValues[twig] = b.get_quantity(twig)
 
-		b.adopt_solution(solution_name)
+		adopt_twigs = b.get_value('fitted_twigs', solution=solution_name)
+		if avoid_nans:
+			for t, val in zip(adopt_twigs, b.get_value('fitted_values', solution=solution_name)):
+				if not val:
+					adopt_twigs.remove(t)
+
+		b.adopt_solution(solution_name, adopt_parameters=adopt_twigs)
 
 		if run_compute: 
 			b.run_compute(model=model_name, compute=compute, **compute_kwargs, overwrite=True)
