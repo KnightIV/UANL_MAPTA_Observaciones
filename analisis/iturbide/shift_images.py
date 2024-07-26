@@ -9,7 +9,7 @@ from multiprocessing import Pool, Lock, cpu_count
 from ccdproc import wcs_project
 from astropy.wcs import WCS
 from astropy.io import fits
-from astropy.coordinates import SkyCoord, ICRS
+from astropy.coordinates import SkyCoord
 from astropy import units as u
 
 from astropy import log
@@ -22,7 +22,7 @@ SOLVE_CMD_TEMPLATE = ('solve-field --fits-image --no-plots --timestamp --new-fit
 DATA_DIR = "/run/media/ramon/ROG_Data/Tesis/IturbideDatos/Ensenada Corrections/ATOJ339.9469+45.1464"
 CCD_KWARGS = {'unit': 'adu'}
 
-OBJ_COORD = SkyCoord(339.94692562872, 45.14639621713, unit=u.deg, frame=ICRS) # objective variable star coordinates
+OBJ_COORD = SkyCoord.from_name("ATO J339.9469+45.1464")
 
 def getMkdir(dirPath: str) -> str:
 	if not os.path.exists(dirPath):
