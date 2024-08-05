@@ -22,7 +22,7 @@ def exportSampler(b: phoebe.Bundle, sampler_solver: str, datasets: list[str], su
 	gen_utils.abilitateDatasets(b, datasets, False)
 	try:
 		b.add_solver('sampler.emcee', solver=sampler_solver, overwrite=True, **solver_kwargs)
-		exportFilePath = os.path.join(exportFolder, f"{sampler_solver}.ecpy")
+		exportFilePath = os.path.join(exportFolder, f"{sampler_solver}.py")
 		resultsFilePath = os.path.join("results", sampler_solver)
 		fname, out_fname = b.export_solver(script_fname=exportFilePath, out_fname=resultsFilePath, solver=sampler_solver, solution=f"{sampler_solver}_solution", overwrite=True)
 		print(sampler_solver, fname, out_fname, sep=" | ")
@@ -36,7 +36,7 @@ def continueSampler(b: phoebe.Bundle, solver: str, prev_solution: str, continuat
 	gen_utils.abilitateDatasets(b, datasets, False)
 
 	try:
-		exportFilePath = os.path.join(exportFolder, f"{continuation_label}.ecpy")
+		exportFilePath = os.path.join(exportFolder, f"{continuation_label}.py")
 		resultsFilePath = os.path.join("results", f"{continuation_label}_solution")
 		fname, out_fname = b.export_solver(script_fname=exportFilePath, out_fname=resultsFilePath, solver=solver, solution=f"{continuation_label}_solution", 
 									 continue_from=prev_solution, use_server='none', **solver_kwargs)
@@ -44,22 +44,22 @@ def continueSampler(b: phoebe.Bundle, solver: str, prev_solution: str, continuat
 	finally:
 		gen_utils.abilitateDatasets(b, prevEnabledDatasets)
 
-def plotSamplerAcceptanceFractions(b: phoebe.Bundle, sampler_solution: str) -> None:
+def plotSamplerAcceptanceFractions(b: phoebe.Bundle, sampler_solution: str, min_acceptable=0.4, max_acceptable=0.8, figsize=(22, 7)) -> None:
 	nwalkers = b.get_value(qualifier='nwalkers', solution=sampler_solution)
 
-	plt.figure(figsize=(22, 7))
+	plt.figure(figsize=figsize)
 	walkersIds = list(map(lambda wid: str(wid), range(0, nwalkers)))
 	acceptanceFracs = b.get_value(qualifier='acceptance_fractions', solution=sampler_solution)
-	passRate = len(acceptanceFracs[(acceptanceFracs >= 0.4) & (acceptanceFracs <= 0.8)]) / len(acceptanceFracs)
+	passRate = len(acceptanceFracs[(acceptanceFracs >= min_acceptable) & (acceptanceFracs <= max_acceptable)]) / len(acceptanceFracs)
 	for w_id, ac_frac in zip(walkersIds, acceptanceFracs):
-		plt.bar(x=w_id, height=ac_frac, color=('b' if 0.4 <= ac_frac <= 0.8 else 'r'))
+		plt.bar(x=w_id, height=ac_frac, color=('b' if min_acceptable <= ac_frac <= max_acceptable else 'r'))
 
 	plt.ylim(0, 1)
 	plt.xlim(-1, nwalkers + 1)
 	plt.xticks(rotation=45, fontsize=7)
 
-	plt.fill_between(list(range(-1, len(walkersIds) + 1)), 0.4, 0.8, color='goldenrod', alpha=0.4, label="Desired range")
-	plt.title(f"{sampler_solution} Acceptance Fractions | {passRate*100:.2f}% passing rate")
+	plt.fill_between(list(range(-1, len(walkersIds) + 1)), min_acceptable, max_acceptable, color='goldenrod', alpha=0.4, label="Desired range")
+	plt.title(f"{sampler_solution} Acceptance Fractions | {passRate*100:.2f}\\% passing rate")
 	plt.legend()
 	plt.show()
 	
@@ -134,8 +134,10 @@ def emceeConvergenceTest(b: phoebe.Bundle, solution: str, plot_twigs=[]):
 
 def printParameterAutocorrTimes(b: phoebe.Bundle, solution: str):
 	numIterations = b.get_value(qualifier='niters', solution=solution)
+	autocorrTimes = b.get_value(qualifier='autocorr_times', solution=solution)
+	avgAutocorrTime = np.sum(autocorrTimes)/len(autocorrTimes)
 
-	print(f"Parameter autocorrelation times | Iterations: {numIterations}")
-	print('-------------------------------------')
-	for twig, autocorr_time in zip(b.get_value(qualifier='fitted_twigs', solution=solution), b.get_value(qualifier='autocorr_times', solution=solution)):
+	print(f"Parameter autocorrelation times | Iterations: {numIterations} | Avg. autocorr time: {avgAutocorrTime} | Avg. IIDs: {numIterations/avgAutocorrTime}")
+	print('-------------------------------------------------------------------------------------------------------------------------')
+	for twig, autocorr_time in zip(b.get_value(qualifier='fitted_twigs', solution=solution), autocorrTimes):
 		print(twig, autocorr_time, '|', numIterations / autocorr_time)
