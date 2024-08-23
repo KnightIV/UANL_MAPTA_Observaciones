@@ -12,8 +12,8 @@ from multiprocessing import cpu_count
 # Fedora
 # WORKING_DIR = "/home/ramon/uanl/Tesis/UANL_MAPTA_PlanObservaciones"
 # WORKING_DIR = "/run/media/ramon/T7/Tesis/Gaia Analisis";
-# WORKING_DIR = "/home/ramon/uanl/Tesis/Backup Data/Gaia Query Results/sdss-half"
-WORKING_DIR = "/home/ramon/uanl/Tesis/Backup Data/Gaia Query Results/sdss-3_4"
+WORKING_DIR = "/home/ramon/uanl/thesis/Backup Data/Gaia Query Results/sdss-half"
+# WORKING_DIR = "/home/ramon/uanl/Tesis/Backup Data/Gaia Query Results/sdss-3_4"
 
 # DATA_FILE_PATH = join(WORKING_DIR, "gdr3_sdss_exclusion_phot_cv_candidates-result.csv")
 # DATA_FILE_PATH = join(WORKING_DIR, "SDSS Half Photometric Filter GDR3 - Limit-result.csv")
