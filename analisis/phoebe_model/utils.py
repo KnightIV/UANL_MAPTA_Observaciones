@@ -23,14 +23,13 @@ GAIA_PLOT_COLORS = ({'lcGaiaG@dataset':'green', 'lcGaiaRP@dataset':'red', 'lcGai
 						'lcGaiaG@model':'darkgreen', 'lcGaiaRP@model':'darkred', 'lcGaiaBP@model':'darkblue'}
 					| GAIA_NORM_PLOT_COLORS | GAIA_RAW_PLOT_COLORS)
 
-# ZTF_PLOT_COLORS = {'lcZtfG@dataset': 'yellowgreen', 'lcZtfR@dataset': 'indianred',
-# 				   'lcZtfG@model': 'seagreen', 'lcZtfR@model': 'maroon'}
 ZTF_PLOT_COLORS = {'lcZtfG@dataset': 'lightgreen', 'lcZtfR@dataset': 'lightpink',
 				   'lcZtfG@model': 'seagreen', 'lcZtfR@model': 'maroon'}
-ZTF_TRIMMED_PLOT_COLORS = {'lcZtfGTrimmed@dataset': 'yellowgreen', 'lcZtfRTrimmed@dataset': 'indianred',
+ZTF_TRIMMED_PLOT_COLORS = {'lcZtfGTrimmed@dataset': 'lightgreen', 'lcZtfRTrimmed@dataset': 'lightpink',
 				   'lcZtfGTrimmed@model': 'seagreen', 'lcZtfRTrimmed@model': 'maroon'}
 
 ITURBIDE_PLOT_COLORS = {'lcIturbide@dataset': 'cornflowerblue', 'lcIturbide@model': 'navy',
+						'lcIturbideFull@dataset': 'cornflowerblue', 'lcIturbideFull@model': 'navy',
 						'lc_iturbide_norm@dataset': 'cornflowerblue', 'lc_iturbide_norm@model': 'navy'}
 
 def displayAnims(rows: int, cols: int, *anims: FuncAnimation):
@@ -176,22 +175,7 @@ def abilitateDatasets(b: phoebe.Bundle, enableDatasets: list[str], includeMesh: 
 			b.disable_dataset(d)
 		# b.set_value_all(qualifier='enabled', dataset=d, value=(d in localDatasets))
 
-def plotEnabledData(b: phoebe.Bundle, **plot_kwargs):
-	b.plot(kind='lc', dataset=getEnabledDatasets(b), marker='.', show=True, legend=True, **plot_kwargs)
-	
-def phasePlotEnabledData(b: phoebe.Bundle, **plot_kwargs):
-	default_kwargs = {
-		'color': GAIA_PLOT_COLORS | ZTF_PLOT_COLORS | ZTF_TRIMMED_PLOT_COLORS | ITURBIDE_PLOT_COLORS,
-		's': 0.008
-	}
-	period = b.get_quantity(qualifier='period', component='binary')
-	plotEnabledData(b, x='phase', context='dataset', title=f"$P_{{orb}}$ = {period:.3f} | {period.to(u.hour):.3f}", draw_title=True, **(plot_kwargs | default_kwargs))
-
-def plotFigSize(b: phoebe.Bundle, figsize: tuple[float, float], **plot_kwargs):
-	fig = plt.figure(figsize=figsize)
-	b.plot(fig=fig, **plot_kwargs)
-
-def plotModelResidualsFigsize(b: phoebe.Bundle, figsize: tuple[float, float], datasetGroups: list[list[str] | str], model: str, 
+def plotModelResidualsFigsize(b: phoebe.Bundle, figsize: tuple[float, float], datasetGroups: list[list[str] | str], model: str, phase=True, scale_max_flux=True,
 							  model_kwargs: dict['str', 'str'] = {}, residuals_kwargs: dict['str', 'str'] = {}, **plot_kwargs) -> dict[str, Figure]:
 	"""
 	Plots specified model for the datasets given. Plots dataset(s) with model overlay alongside residuals side-by-side.
@@ -210,13 +194,14 @@ def plotModelResidualsFigsize(b: phoebe.Bundle, figsize: tuple[float, float], da
 	datasetGroupsFigures = {}
 	for datasets in datasetGroups:
 		maxFlux = 0
-		for d in datasets:
-			maxFlux = max([maxFlux, max(b.get_value(qualifier='fluxes', context='dataset', dataset=d))])
-		maxFluxScale = 1 + 0.17*(len(datasets))
+		if scale_max_flux:
+			for d in datasets:
+				maxFlux = max([maxFlux, max(b.get_value(qualifier='fluxes', context='dataset', dataset=d))])
+			maxFluxScale = 1 + 0.17*(len(datasets))
 
 		fig = plt.figure(figsize=figsize)
-		b.plot(x='phase', model=model, dataset=datasets, axorder=1, fig=fig, s={'dataset':0.008, 'model': 0.01}, ylim=(None, maxFluxScale*maxFlux), **(plot_kwargs | model_kwargs))
-		b.plot(x='phase', y='residuals', model=model, dataset=datasets, axorder=2, fig=fig, subplot_grid=(1,2), s=0.008, show=True, **(plot_kwargs | residuals_kwargs))
+		b.plot(x=('phase' if phase else 'times'), model=model, dataset=datasets, axorder=1, fig=fig, s={'dataset':0.008, 'model': 0.01}, ylim=(None, maxFluxScale*maxFlux if scale_max_flux else None), **(plot_kwargs | model_kwargs))
+		b.plot(x=('phase' if phase else 'times'), y='residuals', model=model, dataset=datasets, axorder=2, fig=fig, subplot_grid=(1,2), s=0.008, show=True, **(plot_kwargs | residuals_kwargs))
 		datasetGroupsFigures["-".join(datasets)] = fig
 	return datasetGroupsFigures
 
@@ -229,7 +214,7 @@ def exportCompute(b: phoebe.Bundle, model: str, datasets: list[str], subfolder: 
 		computeFolder = f"external-compute/{subfolder}"
 		os.makedirs(computeFolder, exist_ok=True)
 
-	b.export_compute(script_fname=os.path.join(computeFolder, f"{model}.py"), out_fname=os.path.join(computeFolder, "results", f"{model}.model"), 
+	b.export_compute(script_fname=os.path.join(computeFolder, f"{model}.py"), out_fname=f"./results/{model}.model", 
 				  model=model, dataset=datasets, **compute_kwargs)
 	
 def adopt_solution(b: phoebe.Bundle, solution_name:str=None, model_name: str = None,
@@ -275,18 +260,10 @@ def printChi2(b: phoebe.Bundle, model: str):
 	and raw datasets. Silently ignores any dataset that isn't present in the specified model.
 	"""
 
-	rawGaiaDatasets = [d for d in b.datasets if 'raw' in d and 'gaia' in d]
-	normGaiaDatasets = [d for d in b.datasets if 'norm' in d and 'gaia' in d]
+	rawGaiaDatasets = [d for d in b.datasets if ('raw' in d and 'gaia' in d) or ('Gaia' in d)]
 	ztfDatasets = [d for d in b.datasets if 'Ztf' in d]
 	
 	print(model, "=================================================", sep='\n')
-	try:
-		print('\t', "Iturbide (Aviles) (Raw) -", np.sum(b.calculate_chi2(model=model, dataset='lc_iturbide_aviles_raw')))
-	except: pass
-
-	try:
-		print('\t', "Iturbide (Full) (Raw) -", np.sum(b.calculate_chi2(model=model, dataset='lc_iturbide_raw')))
-	except: pass
 
 	try:
 		print('\t', "Gaia (Raw) -", np.sum(b.calculate_chi2(model=model, dataset=rawGaiaDatasets)))
@@ -297,29 +274,19 @@ def printChi2(b: phoebe.Bundle, model: str):
 	print("------------------------------------------------")
 
 	try:
-		print('\t', "Iturbide (Aviles) (Norm) -", np.sum(b.calculate_chi2(model=model, dataset='lc_iturbide_aviles_norm')))
-	except: pass
-
-	try:
-		print('\t', "Iturbide (Full) (Norm) -", np.sum(b.calculate_chi2(model=model, dataset='lc_iturbide_norm')))
+		print('\t', "Iturbide (Norm) -", np.sum(b.calculate_chi2(model=model, dataset='lc_iturbide_norm')))
 	except: pass
 
 	print("------------------------------------------------")
 
 	try:
-		print('\t', "Gaia (Norm) -", np.sum(b.calculate_chi2(model=model, dataset=normGaiaDatasets)))
-		for gd in normGaiaDatasets:
-			print('\t\t', gd, "-", np.sum(b.calculate_chi2(model=model, dataset=gd)))
+		print('\t', "ZTF -", np.sum(b.calculate_chi2(model=model, dataset=ztfDatasets)))
+		for zd in ztfDatasets:
+			try:
+				print('\t\t', zd, "-", np.sum(b.calculate_chi2(model=model, dataset=zd)))
+			except: 
+				print("\t\t", zd, "Not found in model")
 	except: pass
-
-	print("------------------------------------------------")
-
-	print('\t', "ZTF -", np.sum(b.calculate_chi2(model=model, dataset=ztfDatasets)))
-	for zd in ztfDatasets:
-		try:
-			print('\t\t', zd, "-", np.sum(b.calculate_chi2(model=model, dataset=zd)))
-		except: 
-			print("\t\t", zd, "Not found in model")
 
 def printAllModelsChi2(b: phoebe.Bundle):
 	for m in b.models:

@@ -44,7 +44,8 @@ def continueSampler(b: phoebe.Bundle, solver: str, prev_solution: str, continuat
 	finally:
 		gen_utils.abilitateDatasets(b, prevEnabledDatasets)
 
-def plotSamplerAcceptanceFractions(b: phoebe.Bundle, sampler_solution: str, min_acceptable=0.4, max_acceptable=0.8, figsize=(22, 7)) -> None:
+# def plotSamplerAcceptanceFractions(b: phoebe.Bundle, sampler_solution: str, min_acceptable=0.4, max_acceptable=0.8, figsize=(22, 7)) -> None:
+def plotSamplerAcceptanceFractions(b: phoebe.Bundle, sampler_solution: str, min_acceptable=0.4, max_acceptable=0.8, figsize=(13, 23), vertical=True) -> None:
 	nwalkers = b.get_value(qualifier='nwalkers', solution=sampler_solution)
 
 	plt.figure(figsize=figsize)
@@ -52,15 +53,35 @@ def plotSamplerAcceptanceFractions(b: phoebe.Bundle, sampler_solution: str, min_
 	acceptanceFracs = b.get_value(qualifier='acceptance_fractions', solution=sampler_solution)
 	passRate = len(acceptanceFracs[(acceptanceFracs >= min_acceptable) & (acceptanceFracs <= max_acceptable)]) / len(acceptanceFracs)
 	for w_id, ac_frac in zip(walkersIds, acceptanceFracs):
-		plt.bar(x=w_id, height=ac_frac, color=('b' if min_acceptable <= ac_frac <= max_acceptable else 'r'))
+		if vertical:
+			plt.barh(y=w_id, width=ac_frac, color=('b' if min_acceptable <= ac_frac <= max_acceptable else 'r'))
+		else:
+			plt.bar(x=w_id, height=ac_frac, color=('b' if min_acceptable <= ac_frac <= max_acceptable else 'r'))
 
-	plt.ylim(0, 1)
-	plt.xlim(-1, nwalkers + 1)
-	plt.xticks(rotation=45, fontsize=7)
+	if vertical:
+		plt.xlim(0, 1)
+		plt.ylim(-1, nwalkers)
+		plt.yticks(fontsize=9)
+		plt.fill_betweenx(list(range(-1, len(walkersIds) + 1)), min_acceptable, max_acceptable, color='goldenrod', alpha=0.4, label="Desired range")
+	else:
+		plt.ylim(0, 1)
+		plt.xlim(-1, nwalkers + 1)
+		plt.xticks(rotation=45, fontsize=9)
+		plt.fill_between(list(range(-1, len(walkersIds) + 2)), min_acceptable, max_acceptable, color='goldenrod', alpha=0.4, label="Desired range")
 
-	plt.fill_between(list(range(-1, len(walkersIds) + 1)), min_acceptable, max_acceptable, color='goldenrod', alpha=0.4, label="Desired range")
-	plt.title(f"{sampler_solution} Acceptance Fractions | {passRate*100:.2f}\\% passing rate")
-	plt.legend()
+	plt.title(f"$\\mathtt{{{sampler_solution.replace('_', r'\_')}}}$ Acceptance Fractions | ${passRate*100:.2f}\\%$ passing rate", fontsize=20)
+	plt.legend(fontsize=14)
+
+	xlabel: str
+	ylabel: str
+	if vertical:
+		xlabel = "Acceptance fraction"
+		ylabel = "Walker ID"
+	else:
+		xlabel = "Walker ID"
+		ylabel = "Acceptance fraction"
+	plt.xlabel(xlabel, fontsize=16)
+	plt.ylabel(ylabel, fontsize=16)
 	plt.show()
 	
 def emceeAutoCorr(b: phoebe.Bundle, solution: str):
@@ -134,10 +155,19 @@ def emceeConvergenceTest(b: phoebe.Bundle, solution: str, plot_twigs=[]):
 
 def printParameterAutocorrTimes(b: phoebe.Bundle, solution: str):
 	numIterations = b.get_value(qualifier='niters', solution=solution)
+	burninIterations = b.get_value(qualifier='burnin', solution=solution)
+	effectiveIterations = numIterations - burninIterations
+
 	autocorrTimes = b.get_value(qualifier='autocorr_times', solution=solution)
 	avgAutocorrTime = np.sum(autocorrTimes)/len(autocorrTimes)
 
-	print(f"Parameter autocorrelation times | Iterations: {numIterations} | Avg. autocorr time: {avgAutocorrTime} | Avg. IIDs: {numIterations/avgAutocorrTime}")
-	print('-------------------------------------------------------------------------------------------------------------------------')
+	print(f"""Parameter autocorrelation times 
+	   Total iterations: {numIterations} ({burninIterations} burnin) 
+	   Avg. autocorr time: {avgAutocorrTime} 
+	   Avg. IIDs: {effectiveIterations/avgAutocorrTime}""")
+	print('---------------------------------------------------------------')
 	for twig, autocorr_time in zip(b.get_value(qualifier='fitted_twigs', solution=solution), autocorrTimes):
-		print(twig, autocorr_time, '|', numIterations / autocorr_time)
+		# print(twig, autocorr_time, '|', effectiveIterations / autocorr_time)
+		print(twig)
+		print("\tAutocorrelation time:", autocorr_time)
+		print("\tIIDs ([iters - burnin]/autocorr_time):", effectiveIterations/autocorr_time)
