@@ -3,11 +3,12 @@ import os
 import gzip
 import shutil
 
+import numpy as np
 import phoebe
 from phoebe import u
 
 try:
-	from utils import printFittedVals
+	from utils import printFittedVals, printChi2
 except ImportError: # will happen when running on external compute, copy over necessary functions here
 	def __matchAnyTwig(twig: str, twigs_list: list[str]) -> bool:
 		for refTwig in twigs_list:
@@ -32,6 +33,43 @@ except ImportError: # will happen when running on external compute, copy over ne
 						"(Not adopting)" if adopt_twigs is not None and not __matchAnyTwig(twig, adopt_twigs) else "")
 			except:
 				print(twig, value, unit)
+	
+	def printChi2(b: phoebe.Bundle, model: str):
+		"""
+		Prints the chi2 fit of a model for all available datasets: Iturbide, Aviles, Gaia, and ZTF data, both normalized
+		and raw datasets. Silently ignores any dataset that isn't present in the specified model.
+		"""
+
+		# rawGaiaDatasets = [d for d in b.datasets if 'raw' in d and 'gaia' in d]
+		# normGaiaDatasets = [d for d in b.datasets if 'norm' in d and 'gaia' in d]
+		ztfDatasets = [d for d in b.datasets if 'Ztf' in d]
+		spmDatasets = [d for d in b.datasets if 'Spm' in d]
+		
+		print(model, "=================================================", sep='\n')
+
+		try:
+			print('\t', "TESS -", np.sum(b.calculate_chi2(model=model, dataset='lcTess')))
+		except: pass
+
+		print("------------------------------------------------")
+
+		try:
+			print('\t', "OAN SPM -", np.sum(b.calculate_chi2(model=model, dataset=spmDatasets)))
+			for d in spmDatasets:
+				print('\t\t', d, "-", np.sum(b.calculate_chi2(model=model, dataset=d)))
+		except: pass
+
+		print("------------------------------------------------")
+
+		try:
+			print('\t', "ZTF -", np.sum(b.calculate_chi2(model=model, dataset=ztfDatasets)))
+			for zd in ztfDatasets:
+				try:
+					print('\t\t', zd, "-", np.sum(b.calculate_chi2(model=model, dataset=zd)))
+				except: 
+					print("\t\t", zd, "Not found in model")
+		except:
+			pass
 
 def load_bundle(path: str) -> phoebe.Bundle:
 	tempJsonFile = path.replace('.gz', '') # work with compressed files
@@ -43,7 +81,10 @@ def load_bundle(path: str) -> phoebe.Bundle:
 	os.remove(tempJsonFile)
 	return b
 
-def save_bundle(b: phoebe.Bundle, path: str, compact: bool = True, compress: bool = True) -> str:	
+def save_bundle(b: phoebe.Bundle, path: str, compact: bool = True, compress: bool = True) -> str:
+	if '.json' not in path:
+		path = f"{path}.json"
+		
 	jsonFile = b.save(path, compact=compact)
 	if compress:
 		with open(jsonFile, 'rb') as f_in:
@@ -66,9 +107,12 @@ def run_dc(b: phoebe.Bundle, num_iter: int, solver: str, solution: str) -> None:
 		printFittedVals(b, solution=solution)
 		b.adopt_solution(solution)
 
+		b.run_compute(model='dc_solution_model', overwrite=True)
+		printChi2(b, model='dc_solution_model')
+
 if __name__ == '__main__':
 	if len(sys.argv) != 6:
-		print("Usage: python dc_optimizer.py {solver} {solution} {num_iter} {bundle_start_path}, {result_path}")
+		print("Usage: python dc-optimizer.py {solver} {solution} {num_iter} {bundle_start_path} {result_path}")
 		exit(1)
 
 	logger = phoebe.logger(clevel='WARNING')
