@@ -51,6 +51,7 @@ def plotSamplerAcceptanceFractions(b: phoebe.Bundle, sampler_solution: str, min_
 	plt.figure(figsize=figsize)
 	walkersIds = list(map(lambda wid: str(wid), range(0, nwalkers)))
 	acceptanceFracs = b.get_value(qualifier='acceptance_fractions', solution=sampler_solution)
+	print(f"Avg. acceptance fraction: {np.mean(acceptanceFracs)}")
 	passRate = len(acceptanceFracs[(acceptanceFracs >= min_acceptable) & (acceptanceFracs <= max_acceptable)]) / len(acceptanceFracs)
 	for w_id, ac_frac in zip(walkersIds, acceptanceFracs):
 		if vertical:
@@ -83,6 +84,29 @@ def plotSamplerAcceptanceFractions(b: phoebe.Bundle, sampler_solution: str, min_
 	plt.xlabel(xlabel, fontsize=16)
 	plt.ylabel(ylabel, fontsize=16)
 	plt.show()
+
+def plotDistribution(b: phoebe.Bundle, distribution: str|list[str], plot_kwargs: dict[str: any] = {}, **get_distribution_collection_kwargs):
+	allLatexLabels = {
+					# others bounded
+					'mass@primary@star@component': '$M_1$',
+					'period@binary@orbit@component': r'$P_{\mathrm{orb}} (\mathrm{d})$',
+					't0_supconj@binary@orbit@component': '$t_0$',
+					'pot@contact_envelope@envelope@component': r'$\Omega_{\mathrm{CE}}$',
+
+					# sampled
+					'teff@primary@star@component': '$T_1$', 
+					'teffratio@binary@orbit@component': '$T_2/T_1$', 
+					'fillout_factor@contact_envelope@envelope@component': '$f$', 
+					'incl@binary@orbit@component': r'$i_{\mathrm{orb}}$', 
+					'q@binary@orbit@component': '$q$', 
+					'pblum@primary@lcZtfG@lc@dataset': r'$\mathrm{ L_\mathrm{ pb, ZTF:g } }$',
+					'colat@secondary_spot@secondary@spot@feature': r'$\mathrm{Lat}_{\mathrm{spot}}$',
+					'long@secondary_spot@secondary@spot@feature': r'$\mathrm{ Lon }_{\mathrm{spot}}$',
+					'radius@secondary_spot@secondary@spot@feature': r'$\mathrm{ Radius }_{\mathrm{spot}}$',
+					'relteff@secondary_spot@secondary@spot@feature': r'$T_{\mathrm{spot}} / T_2$'}
+	dist, labels = b.get_distribution_collection(distribution, **get_distribution_collection_kwargs)
+	latexLabels = [allLatexLabels[l] for l in labels]
+	_ = dist.plot(labels=latexLabels, show=True, label_kwargs={'fontsize': 16}, divergences=True, **plot_kwargs)
 	
 def emceeAutoCorr(b: phoebe.Bundle, solution: str):
 	emceeObj = phoebe.helpers.get_emcee_object_from_solution(b, solution=solution)
