@@ -220,7 +220,7 @@ def exportCompute(b: phoebe.Bundle, model: str, datasets: list[str], subfolder: 
 def adopt_solution(b: phoebe.Bundle, solution_name:str=None, model_name: str = None,
 					reset_params=False, solution_file:str=None, 
 					run_compute=True, print_sol=True, compute='phoebe01',
-				   	avoid_nans=True, **compute_kwargs) -> None:
+				   	avoid_nans=True, adopt_solution_kwargs: dict[str, str] = {}, **compute_kwargs) -> None:
 	if solution_file:
 		solution_name = b.import_solution(solution_file, solution=solution_name, overwrite=True).solutions[0]
 
@@ -236,13 +236,15 @@ def adopt_solution(b: phoebe.Bundle, solution_name:str=None, model_name: str = N
 			for twig in b.get_value(qualifier='fitted_twigs', solution=solution_name):
 				initValues[twig] = b.get_quantity(twig)
 
-		adopt_twigs = b.get_value('fitted_twigs', solution=solution_name)
-		if avoid_nans:
-			for t, val in zip(adopt_twigs, b.get_value('fitted_values', solution=solution_name)):
-				if not val:
-					adopt_twigs.remove(t)
+		if 'adopt_twigs' not in adopt_solution_kwargs:
+			adopt_twigs = b.get_value('fitted_twigs', solution=solution_name)
+			if avoid_nans:
+				for t, val in zip(adopt_twigs, b.get_value('fitted_values', solution=solution_name)):
+					if not val:
+						adopt_twigs.remove(t)
+			adopt_solution_kwargs['adopt_twigs'] = adopt_twigs
 
-		b.adopt_solution(solution_name, adopt_parameters=adopt_twigs)
+		b.adopt_solution(solution_name, **adopt_solution_kwargs)
 
 		if run_compute: 
 			b.run_compute(model=model_name, compute=compute, **compute_kwargs, overwrite=True)
