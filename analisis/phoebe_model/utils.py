@@ -276,7 +276,7 @@ def printChi2(b: phoebe.Bundle, model: str):
 	print("------------------------------------------------")
 
 	try:
-		print('\t', "Iturbide (Norm) -", np.sum(b.calculate_chi2(model=model, dataset='lc_iturbide_norm')))
+		print('\t', "Iturbide (Norm) -", np.sum(b.calculate_chi2(model=model, dataset=['lc_iturbide_norm', 'lcIturbide'])))
 	except: pass
 
 	print("------------------------------------------------")
@@ -293,3 +293,10 @@ def printChi2(b: phoebe.Bundle, model: str):
 def printAllModelsChi2(b: phoebe.Bundle):
 	for m in b.models:
 		printChi2(b, m)
+
+def printModelsChi2(b: phoebe.Bundle, models: list[str]):
+	for m in models:
+		if m not in b.models:
+			print(f"{m} not found")
+		else:
+			printChi2(b, m)
