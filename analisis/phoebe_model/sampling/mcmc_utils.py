@@ -106,7 +106,7 @@ def plotDistribution(b: phoebe.Bundle, distribution: str|list[str], plot_kwargs:
 					'relteff@secondary_spot@secondary@spot@feature': r'$T_{\mathrm{spot}} / T_2$'}
 	dist, labels = b.get_distribution_collection(distribution, **get_distribution_collection_kwargs)
 	latexLabels = [allLatexLabels[l] for l in labels]
-	_ = dist.plot(labels=latexLabels, show=True, label_kwargs={'fontsize': 16}, divergences=True, **plot_kwargs)
+	_ = dist.plot(labels=latexLabels, show=True, label_kwargs={'fontsize': 26}, divergences=True, **plot_kwargs)
 	
 def emceeAutoCorr(b: phoebe.Bundle, solution: str):
 	emceeObj = phoebe.helpers.get_emcee_object_from_solution(b, solution=solution)
