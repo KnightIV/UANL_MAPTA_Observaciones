@@ -8,7 +8,7 @@ import phoebe
 from phoebe import u
 
 try:
-	from utils import printFittedVals, printChi2
+	from utils import printChi2
 except ImportError: # will happen when running on external compute, copy over necessary functions here
 	def __matchAnyTwig(twig: str, twigs_list: list[str]) -> bool:
 		for refTwig in twigs_list:
@@ -101,14 +101,31 @@ def run_dc(b: phoebe.Bundle, num_iter: int, solver: str, solution: str) -> None:
 
 	Final optimizer solution saved as whole bundle.
 	"""
-	for i in range(num_iter):
-		print('', i, "-------------------------", sep='\n')
-		b.run_solver(solver=solver, solution=solution, overwrite=True)
-		printFittedVals(b, solution=solution)
-		b.adopt_solution(solution)
 
-		b.run_compute(model='dc_solution_model', overwrite=True)
-		printChi2(b, model='dc_solution_model')
+	bestSolution: str = None
+	bestChi2 = 1e6
+
+	for i in range(num_iter):
+		try:
+			print('', i, "-------------------------", sep='\n')
+			b.run_solver(solver=solver, solution=f"{solution}_{i}", overwrite=True)
+			# printFittedVals(b, solution=f"{solution}_{i}")
+			b.adopt_solution(f"{solution}_{i}")
+
+			b.run_compute(model='dc_solution_model', overwrite=True)
+			# printChi2(b, model='dc_solution_model')
+
+			ztfChi2 = np.sum(b.calculate_chi2(model='dc_solution_model', dataset=['lcZtfG', 'lcZtfR']))
+			if ztfChi2 < bestChi2:
+				bestSolution = f"{solution}_{i}"
+				bestChi2 = ztfChi2
+		except:
+			print("Error running and adopting step")
+	
+	print("Best solution")
+	print("----------------------------")
+	printFittedVals(b, solution=bestSolution)
+
 
 if __name__ == '__main__':
 	if len(sys.argv) != 6:
