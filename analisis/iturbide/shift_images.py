@@ -18,8 +18,7 @@ log.setLevel('ERROR')
 MAX_PARALLEL = max(cpu_count() - 2, 2)
 SOLVE_CMD_TEMPLATE = ('solve-field --fits-image --no-plots --timestamp --new-fits "{solvedOutPath}" --cpulimit 180 -D '
 					  '"{tempFiles}" "{inputPath}" --overwrite')
-# BASE_DATA_DIR = "/run/media/ramon/ROG_Data/Tesis/IturbideDatos/ATOJ339.9469+45.1464/"
-DATA_DIR = "/run/media/ramon/ROG_Data/Tesis/IturbideDatos/Ensenada Corrections/ATOJ339.9469+45.1464"
+DATA_DIR = "SCIENCE_IMAGES_DIRECTORY_HERE"
 CCD_KWARGS = {'unit': 'adu'}
 
 OBJ_COORD = SkyCoord.from_name("ATO J339.9469+45.1464")
