@@ -21,7 +21,7 @@ SOLVE_CMD_TEMPLATE = ('solve-field --fits-image --no-plots --timestamp --new-fit
 DATA_DIR = "SCIENCE_IMAGES_DIRECTORY_HERE"
 CCD_KWARGS = {'unit': 'adu'}
 
-OBJ_COORD = SkyCoord.from_name("ATO J339.9469+45.1464")
+# OBJ_COORD = SkyCoord.from_name("ATO J339.9469+45.1464")
 
 def getMkdir(dirPath: str) -> str:
 	if not os.path.exists(dirPath):
@@ -57,7 +57,7 @@ class SolveCaller:
 	def __call__(self, imagesChunks):
 		plateSolve(imagesChunks, self.correctedDir)
 
-correctedDir = DATA_DIR # cleaned images (bias, dark, flat subtracted) directory
+correctedDir = DATA_DIR # cleaned images (bias-, dark-, flat-subtracted) directory
 imagesChunks = np.array_split(os.listdir(correctedDir), MAX_PARALLEL)
 with Pool(MAX_PARALLEL) as pool:
 	pool.map(SolveCaller(correctedDir), imagesChunks)
@@ -68,13 +68,14 @@ solvedFitsDir = os.path.join(correctedDir, "solved-fits")
 fixedSolvedFitsDir = getMkdir(os.path.join(correctedDir, "fixed-solved-fits"))
 shiftedDir = getMkdir(os.path.join(correctedDir, "iraf-shifted"))
 
+# TODO: check if still needed in general
 # fixing 'broken' header entries (from work with Dr. Raul Michel to use with his photometry pipeline)
-for f in os.listdir(solvedFitsDir):
-	with fits.open(os.path.join(solvedFitsDir, f)) as hdul:
-		hdul[0].header['RA'] = OBJ_COORD.ra.value
-		hdul[0].header['DEC'] = OBJ_COORD.dec.value
-		hdul[0].verify('fix')
-		hdul.writeto(os.path.join(fixedSolvedFitsDir, f))
+# for f in os.listdir(solvedFitsDir):
+# 	with fits.open(os.path.join(solvedFitsDir, f)) as hdul:
+# 		hdul[0].header['RA'] = OBJ_COORD.ra.value
+# 		hdul[0].header['DEC'] = OBJ_COORD.dec.value
+# 		hdul[0].verify('fix')
+# 		hdul.writeto(os.path.join(fixedSolvedFitsDir, f))
 
 rawImages = ccdproc.ImageFileCollection(fixedSolvedFitsDir)
 for img, img_fname in rawImages.ccds(ccd_kwargs=CCD_KWARGS, return_fname=True):
