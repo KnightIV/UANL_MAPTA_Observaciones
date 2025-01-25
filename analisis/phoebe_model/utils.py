@@ -176,7 +176,7 @@ def abilitateDatasets(b: phoebe.Bundle, enableDatasets: list[str], includeMesh: 
 		# b.set_value_all(qualifier='enabled', dataset=d, value=(d in localDatasets))
 
 def plotModelResidualsFigsize(b: phoebe.Bundle, figsize: tuple[float, float], datasetGroups: list[list[str] | str], model: str, phase=True, scale_max_flux=True,
-							  model_kwargs: dict['str', 'str'] = {}, residuals_kwargs: dict['str', 'str'] = {}, **plot_kwargs) -> dict[str, Figure]:
+							  model_kwargs: dict['str', 'str'] = {}, residuals_kwargs: dict['str', 'str'] = {}, **plot_kwargs) -> None:
 	"""
 	Plots specified model for the datasets given. Plots dataset(s) with model overlay alongside residuals side-by-side.
 	"""
@@ -189,9 +189,11 @@ def plotModelResidualsFigsize(b: phoebe.Bundle, figsize: tuple[float, float], da
 	for key, defaultVal in defaultPlotKwargs.items():
 		plot_kwargs[key] = plot_kwargs.get(key, defaultVal)
 
+	if type(datasetGroups[0]) is str:
+		scale_max_flux = False
+
 	residuals_kwargs['marker'] = '.'
 
-	datasetGroupsFigures = {}
 	for datasets in datasetGroups:
 		maxFlux = 0
 		if scale_max_flux:
@@ -202,8 +204,6 @@ def plotModelResidualsFigsize(b: phoebe.Bundle, figsize: tuple[float, float], da
 		fig = plt.figure(figsize=figsize)
 		b.plot(x=('phase' if phase else 'times'), model=model, dataset=datasets, axorder=1, fig=fig, s={'dataset':0.008, 'model': 0.01}, ylim=(None, maxFluxScale*maxFlux if scale_max_flux else None), **(plot_kwargs | model_kwargs))
 		b.plot(x=('phase' if phase else 'times'), y='residuals', model=model, dataset=datasets, axorder=2, fig=fig, subplot_grid=(1,2), s=0.008, show=True, **(plot_kwargs | residuals_kwargs))
-		datasetGroupsFigures["-".join(datasets)] = fig
-	return datasetGroupsFigures
 
 def exportCompute(b: phoebe.Bundle, model: str, datasets: list[str], subfolder: str = None, **compute_kwargs) -> None:
 	if not os.path.exists("external-compute"):

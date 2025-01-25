@@ -3,47 +3,52 @@ from collections import namedtuple
 
 import phoebe
 
-import analisis.phoebe_model.utils as gen_utils
+try:
+	import analisis.phoebe_model.utils as gen_utils
+except ImportError:
+	import utils as gen_utils
 
 AdoptSolutionResult = namedtuple("AdoptSolutionResult", "solutionName computeModelName")
-def adopt_solution(b: phoebe.Bundle, label:str=None, 
+def adopt_solution(b: phoebe.Bundle, label:str=None, solution_name:str=None,
 					reset_params=False, solution_file:str=None, adopt_twigs:list[str]=None,
-					run_compute=True, print_sol=True, compute='phoebe01', **compute_kwargs) -> AdoptSolutionResult:
-	solutionName: str
+					run_compute=True, print_sol=True, compute='phoebe01', compute_model_name:str=None, 
+					**compute_kwargs) -> AdoptSolutionResult:
 	if label is not None:
-		solutionName = f"opt_{label}_solution"
+		solution_name = f"opt_{label}_solution"
 
 	if solution_file:
-		solutionName = b.import_solution(solution_file, overwrite=True).solutions[0]
-		label = solutionName.replace("_solution", "").replace("opt_", "")
+		solution_name = b.import_solution(solution_file, overwrite=True).solutions[0]
 
 	if print_sol:
 		print("Adopted:")
-		gen_utils.printFittedVals(b, solutionName, adopt_twigs=adopt_twigs)
+		gen_utils.printFittedVals(b, solution_name, adopt_twigs=adopt_twigs)
 		print("\nOriginal values:")
-		gen_utils.printFittedTwigsConstraints(b, solutionName, adopt_twigs=adopt_twigs)
+		gen_utils.printFittedTwigsConstraints(b, solution_name, adopt_twigs=adopt_twigs)
 
 	try:
 		initValues = {}
 		if reset_params:
-			for twig in b.get_value(qualifier='fitted_twigs', solution=solutionName):
+			for twig in b.get_value(qualifier='fitted_twigs', solution=solution_name):
 				initValues[twig] = b.get_quantity(twig)
 
-		b.adopt_solution(solutionName, adopt_parameters=adopt_twigs)
+		b.adopt_solution(solution_name, adopt_parameters=adopt_twigs)
+
+		if label is None:
+			label = solution_name.replace("_solution", "").replace("opt_", "")
 
 		computeModelName = None
 		if run_compute: 
-			computeModelName = f"opt_{label}_model"
+			computeModelName = compute_model_name if compute_model_name else f"opt_{label}_model"
 			b.run_compute(model=computeModelName, compute=compute, **compute_kwargs, overwrite=True)
-	except: # reset values if an exception occurs, regardless of reset_params value
+	except Exception as e: # reset values if an exception occurs, regardless of reset_params value
+		print("Ran into exception", e)
 		for twig, val in initValues.items():
 			b.set_value(twig, value=val)
 	finally:
 		if reset_params:
 			for twig, val in initValues.items():
 				b.set_value(twig, value=val)
-	
-	return AdoptSolutionResult(solutionName, computeModelName)
+	return AdoptSolutionResult(solution_name, computeModelName)
 
 def optimize_params(b: phoebe.Bundle, fit_twigs: list[str], label: str, export: bool, datasets: list[str], subfolder: str=None, 
 					optimizer='optimizer.nelder_mead', compute='phoebe01', overwrite_export=True,
