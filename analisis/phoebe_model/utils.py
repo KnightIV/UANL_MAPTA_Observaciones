@@ -271,9 +271,8 @@ def printChi2(b: phoebe.Bundle, model: str):
 		print('\t', "Gaia (Raw) -", np.sum(b.calculate_chi2(model=model, dataset=rawGaiaDatasets)))
 		for gd in rawGaiaDatasets:
 			print('\t\t', gd, "-", np.sum(b.calculate_chi2(model=model, dataset=gd)))
+		print("------------------------------------------------")
 	except: pass
-	
-	print("------------------------------------------------")
 
 	try:
 		print('\t', "Iturbide (Norm) -", np.sum(b.calculate_chi2(model=model, dataset=['lc_iturbide_norm', 'lcIturbide'])))
