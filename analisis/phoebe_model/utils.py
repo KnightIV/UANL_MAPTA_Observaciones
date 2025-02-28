@@ -51,40 +51,46 @@ def displayAnim(anim: FuncAnimation):
 	display.display(display.HTML(anim.to_html5_video()))
 	plt.rcParams['backend'] = originalBackend
 
-def __matchAnyTwig(twig: str, twigs_list: list[str]) -> bool:
+def __matchAnyTwig(twig: str, twigs_list: list[str]) -> str:
 	for refTwig in twigs_list:
 		refComponents = refTwig.split('@')
 		twigComponents = twig.split('@')
 
 		if len(set(refComponents) & set(twigComponents)) != 0:
-			return True
+			return refTwig
 		
-	return False
+	return None
 
 def printFittedVals(b: phoebe.Bundle, solution: str, adopt_twigs: list[str] = None, units: dict[str, u.Unit] = {}):
 	for twig, value, unit in zip(b.get_value('fitted_twigs', solution=solution),
 								b.get_value('fitted_values', solution=solution),
 								b.get_value('fitted_units', solution=solution)):
+		refTwig = __matchAnyTwig(twig, adopt_twigs) if adopt_twigs is not None else None
+		unitTwig = __matchAnyTwig(twig, list(units.keys()))
 		try:
 			originalUnit = u.Unit(unit)
 			quantity = value * originalUnit
-			print(twig, f"{quantity.to(units.get(twig, originalUnit)).value:.5f}", units.get(twig, originalUnit).to_string(), "(Not adopting)" if adopt_twigs is not None and not __matchAnyTwig(twig, adopt_twigs) else "")
+			print(twig, f"{quantity.to(units.get(unitTwig, originalUnit)).value:.5f}", 
+		 					units.get(unitTwig, originalUnit).to_string(), 
+		 					"(Not adopting)" if adopt_twigs is not None and refTwig is None else "")
 		except:
 			print(twig, value, unit)
 
 def printFittedTwigsConstraints(b: phoebe.Bundle, solution: str, units: dict[str, u.Unit] = {}, adopt_twigs: list[str] = None):
 	for fitTwig in b.get_value('fitted_twigs', solution=solution):
+		refTwig = __matchAnyTwig(fitTwig, adopt_twigs) if adopt_twigs is not None else None
+		unitTwig = __matchAnyTwig(fitTwig, list(units.keys()))
 		quantity = b.get_quantity(fitTwig)
 		try:
 			print("C" if b[fitTwig].constrained_by else " ",
 					fitTwig,
-					f"{quantity.to(units.get(fitTwig, quantity.unit)):.5f}",
-					"(Not adopting)" if adopt_twigs is not None and not __matchAnyTwig(fitTwig, adopt_twigs) else "")
+					f"{quantity.to(units.get(unitTwig, quantity.unit)):.5f}",
+					"(Not adopting)" if adopt_twigs is not None and refTwig is None else "")
 		except:
 			print("C" if b[fitTwig].constrained_by else " ",
 				  fitTwig,
 				  quantity,
-				  "(Not adopting)" if adopt_twigs is not None and not __matchAnyTwig(fitTwig, adopt_twigs) else "")
+				  "(Not adopting)" if adopt_twigs is not None and refTwig is None else "")
 
 def saveBundle(b: phoebe.Bundle, bundleName: str, subfolder: str = None, overwrite: bool = True, compact: bool = True, compress: bool = True) -> str:
 	if not os.path.exists("bundle-saves"):

@@ -2,6 +2,7 @@ import os
 from collections import namedtuple
 
 import phoebe
+from phoebe import u
 
 try:
 	import analisis.phoebe_model.utils as gen_utils
@@ -10,7 +11,7 @@ except ImportError:
 
 AdoptSolutionResult = namedtuple("AdoptSolutionResult", "solutionName computeModelName")
 def adopt_solution(b: phoebe.Bundle, label:str=None, solution_name:str=None,
-					reset_params=False, solution_file:str=None, adopt_twigs:list[str]=None,
+					reset_params=False, solution_file:str=None, adopt_twigs:list[str]=None, param_units:dict[str:u.Unit]={'incl': u.degree},
 					run_compute=True, print_sol=True, compute='phoebe01', compute_model_name:str=None, 
 					**compute_kwargs) -> AdoptSolutionResult:
 	if label is not None:
@@ -21,9 +22,9 @@ def adopt_solution(b: phoebe.Bundle, label:str=None, solution_name:str=None,
 
 	if print_sol:
 		print("Adopted:")
-		gen_utils.printFittedVals(b, solution_name, adopt_twigs=adopt_twigs)
+		gen_utils.printFittedVals(b, solution_name, adopt_twigs=adopt_twigs, units=param_units)
 		print("\nOriginal values:")
-		gen_utils.printFittedTwigsConstraints(b, solution_name, adopt_twigs=adopt_twigs)
+		gen_utils.printFittedTwigsConstraints(b, solution_name, adopt_twigs=adopt_twigs, units=param_units)
 
 	try:
 		initValues = {}
