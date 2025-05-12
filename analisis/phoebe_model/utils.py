@@ -181,6 +181,16 @@ def abilitateDatasets(b: phoebe.Bundle, enableDatasets: list[str], includeMesh: 
 			b.disable_dataset(d)
 		# b.set_value_all(qualifier='enabled', dataset=d, value=(d in localDatasets))
 
+def abilitateFeatures(b: phoebe.Bundle, *enableFeatures: list[str]):
+	"""
+	Enables specified features (eg. spots) and disables all others.
+	"""		
+	for d in b.features:
+		if d in enableFeatures:
+			b.enable_feature(d)
+		else:
+			b.disable_feature(d)
+
 def plotModelResidualsFigsize(b: phoebe.Bundle, figsize: tuple[float, float], datasetGroups: list[list[str] | str], model: str, phase=True, scale_max_flux=True,
 							  model_kwargs: dict['str', 'str'] = {}, residuals_kwargs: dict['str', 'str'] = {}, **plot_kwargs) -> None:
 	"""
@@ -270,8 +280,9 @@ def printChi2(b: phoebe.Bundle, model: str):
 
 	rawGaiaDatasets = [d for d in b.datasets if ('raw' in d and 'gaia' in d) or ('Gaia' in d)]
 	ztfDatasets = [d for d in b.datasets if 'Ztf' in d]
+	allLcs = [d for d in b.datasets if 'mesh' not in d]
 	
-	print(model, "=================================================", sep='\n')
+	print(f"{model} - {b.calculate_chi2(model=model, dataset=allLcs)}", "=================================================", sep='\n')
 
 	try:
 		print('\t', "Gaia (Raw) -", np.sum(b.calculate_chi2(model=model, dataset=rawGaiaDatasets)))

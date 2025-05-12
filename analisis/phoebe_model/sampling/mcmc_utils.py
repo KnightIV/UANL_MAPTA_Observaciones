@@ -6,7 +6,38 @@ import emcee
 import numpy as np
 import matplotlib.pyplot as plt
 
-import analisis.phoebe_model.utils as gen_utils
+try:
+	import analisis.phoebe_model.utils as gen_utils
+except ImportError:
+	import utils as gen_utils
+
+LATEX_LABELS = {
+	# others bounded
+	'mass@primary@star@component': '$M_1$',
+	'period@binary@orbit@component': r'$P_{\mathrm{orb}} (\mathrm{d})$',
+	't0_supconj@binary@orbit@component': '$t_0$',
+	'pot@contact_envelope@envelope@component': r'$\Omega_{\mathrm{CE}}$',
+
+	# sampled
+	'teff@primary@star@component': '$T_1$', 
+	'teffratio@binary@orbit@component': '$T_2/T_1$', 
+	'fillout_factor@contact_envelope@envelope@component': '$f$', 
+	'incl@binary@orbit@component': r'$i_{\mathrm{orb}}$', 
+	'q@binary@orbit@component': '$q$', 
+	'pblum@primary@lcZtfG@lc@dataset': r'$\mathrm{ L_\mathrm{ pb, ZTF:g } }$',
+	'pblum@primary@lcZtfR@lc@dataset': r'$\mathrm{ L_\mathrm{ pb, ZTF:r } }$',
+	'pblum@primary@lcIturbide@lc@dataset': r'$\mathrm{ L_\mathrm{ pb, Iturbide } }$',
+
+	'colat@primary_hot_spot@primary@spot@feature': r'$\mathrm{Lat}_{\mathrm{spot}}$',
+	'long@primary_hot_spot@primary@spot@feature': r'$\mathrm{ Lon }_{\mathrm{spot}}$',
+	'radius@primary_hot_spot@primary@spot@feature': r'$\mathrm{ Radius }_{\mathrm{spot}}$',
+	'relteff@primary_hot_spot@primary@spot@feature': r'$T_{\mathrm{spot}} / T_1$',
+
+	'colat@secondary_hot_spot@secondary@spot@feature': r'$\mathrm{Lat}_{\mathrm{spot}}$',
+	'long@secondary_hot_spot@secondary@spot@feature': r'$\mathrm{ Lon }_{\mathrm{spot}}$',
+	'radius@secondary_hot_spot@secondary@spot@feature': r'$\mathrm{ Radius }_{\mathrm{spot}}$',
+	'relteff@secondary_hot_spot@secondary@spot@feature': r'$T_{\mathrm{spot}} / T_2$'
+}
 
 def __createExternalJobsFolder(subfolder: str) -> str:
 	exportFolder = "external-jobs"
@@ -86,27 +117,11 @@ def plotSamplerAcceptanceFractions(b: phoebe.Bundle, sampler_solution: str, min_
 	plt.show()
 
 def plotDistribution(b: phoebe.Bundle, distribution: str|list[str], plot_kwargs: dict[str: any] = {}, **get_distribution_collection_kwargs):
-	allLatexLabels = {
-					# others bounded
-					'mass@primary@star@component': '$M_1$',
-					'period@binary@orbit@component': r'$P_{\mathrm{orb}} (\mathrm{d})$',
-					't0_supconj@binary@orbit@component': '$t_0$',
-					'pot@contact_envelope@envelope@component': r'$\Omega_{\mathrm{CE}}$',
-
-					# sampled
-					'teff@primary@star@component': '$T_1$', 
-					'teffratio@binary@orbit@component': '$T_2/T_1$', 
-					'fillout_factor@contact_envelope@envelope@component': '$f$', 
-					'incl@binary@orbit@component': r'$i_{\mathrm{orb}}$', 
-					'q@binary@orbit@component': '$q$', 
-					'pblum@primary@lcZtfG@lc@dataset': r'$\mathrm{ L_\mathrm{ pb, ZTF:g } }$',
-					'colat@secondary_spot@secondary@spot@feature': r'$\mathrm{Lat}_{\mathrm{spot}}$',
-					'long@secondary_spot@secondary@spot@feature': r'$\mathrm{ Lon }_{\mathrm{spot}}$',
-					'radius@secondary_spot@secondary@spot@feature': r'$\mathrm{ Radius }_{\mathrm{spot}}$',
-					'relteff@secondary_spot@secondary@spot@feature': r'$T_{\mathrm{spot}} / T_2$'}
+	if 'parameters' not in get_distribution_collection_kwargs.keys() and type(distribution) is str and distribution in b.solutions:
+		get_distribution_collection_kwargs['parameters'] = b.get_value(f'fitted_twigs@{distribution}').tolist()
 	dist, labels = b.get_distribution_collection(distribution, **get_distribution_collection_kwargs)
-	latexLabels = [allLatexLabels[l] for l in labels]
-	_ = dist.plot(labels=latexLabels, show=True, label_kwargs={'fontsize': 26}, divergences=True, **plot_kwargs)
+	latexLabels = [LATEX_LABELS[l] for l in labels]
+	_ = dist.plot(labels=latexLabels, show=True, label_kwargs={'fontsize': 30}, divergences=True, **plot_kwargs)
 	
 def emceeAutoCorr(b: phoebe.Bundle, solution: str):
 	emceeObj = phoebe.helpers.get_emcee_object_from_solution(b, solution=solution)
