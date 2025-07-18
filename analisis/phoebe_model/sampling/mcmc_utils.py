@@ -4,6 +4,7 @@ import warnings
 import phoebe
 import emcee
 import numpy as np
+import matplotlib.figure as mpl_fig
 import matplotlib.pyplot as plt
 
 try:
@@ -27,16 +28,22 @@ LATEX_LABELS = {
 	'pblum@primary@lcZtfG@lc@dataset': r'$\mathrm{ L_\mathrm{ pb, ZTF:g } }$',
 	'pblum@primary@lcZtfR@lc@dataset': r'$\mathrm{ L_\mathrm{ pb, ZTF:r } }$',
 	'pblum@primary@lcIturbide@lc@dataset': r'$\mathrm{ L_\mathrm{ pb, Iturbide } }$',
+	'sigmas_lnf@lcIturbide@lc@dataset': r'$\sigma_{\mathrm{inf, Iturbide}}$',
 
 	'colat@primary_hot_spot@primary@spot@feature': r'$\mathrm{Lat}_{\mathrm{spot}}$',
 	'long@primary_hot_spot@primary@spot@feature': r'$\mathrm{ Lon }_{\mathrm{spot}}$',
-	'radius@primary_hot_spot@primary@spot@feature': r'$\mathrm{ Radius }_{\mathrm{spot}}$',
+	'radius@primary_hot_spot@primary@spot@feature': r'$r_{\mathrm{spot}}$',
 	'relteff@primary_hot_spot@primary@spot@feature': r'$T_{\mathrm{spot}} / T_1$',
 
 	'colat@secondary_hot_spot@secondary@spot@feature': r'$\mathrm{Lat}_{\mathrm{spot}}$',
 	'long@secondary_hot_spot@secondary@spot@feature': r'$\mathrm{ Lon }_{\mathrm{spot}}$',
 	'radius@secondary_hot_spot@secondary@spot@feature': r'$\mathrm{ Radius }_{\mathrm{spot}}$',
-	'relteff@secondary_hot_spot@secondary@spot@feature': r'$T_{\mathrm{spot}} / T_2$'
+	'relteff@secondary_hot_spot@secondary@spot@feature': r'$T_{\mathrm{spot}} / T_2$',
+
+	'colat@secondary_cold_spot@secondary@spot@feature': r'$\theta_{\mathrm{spot}}$',
+	'long@secondary_cold_spot@secondary@spot@feature': r'$\lambda_{\mathrm{spot}}$',
+	'radius@secondary_cold_spot@secondary@spot@feature': r'$r_{\mathrm{spot}}$',
+	'relteff@secondary_cold_spot@secondary@spot@feature': r'$T_{\mathrm{spot}} / T_2$'
 }
 
 def __createExternalJobsFolder(subfolder: str) -> str:
@@ -121,7 +128,10 @@ def plotDistribution(b: phoebe.Bundle, distribution: str|list[str], plot_kwargs:
 		get_distribution_collection_kwargs['parameters'] = b.get_value(f'fitted_twigs@{distribution}').tolist()
 	dist, labels = b.get_distribution_collection(distribution, **get_distribution_collection_kwargs)
 	latexLabels = [LATEX_LABELS[l] for l in labels]
-	_ = dist.plot(labels=latexLabels, show=True, label_kwargs={'fontsize': 30}, divergences=True, **plot_kwargs)
+	fig: mpl_fig.Figure = dist.plot(labels=latexLabels, label_kwargs={'fontsize': 40}, divergences=True, show=False, **plot_kwargs)
+	for ax in fig.axes:
+		ax.tick_params(axis='x', labelsize=19, rotation=90)
+		ax.tick_params(axis='y', labelsize=19, rotation=0)
 	
 def emceeAutoCorr(b: phoebe.Bundle, solution: str):
 	emceeObj = phoebe.helpers.get_emcee_object_from_solution(b, solution=solution)

@@ -61,7 +61,8 @@ def optimize_params(b: phoebe.Bundle, fit_twigs: list[str], label: str, export: 
 	gen_utils.abilitateDatasets(b, datasets, False)
 	
 	saveIterProgress = 1 if export and optimizer == 'optimizer.nelder_mead' else 0
-	b.add_solver(optimizer, solver=f'opt_{label}', fit_parameters=fit_twigs, overwrite=True, progress_every_niters=saveIterProgress, compute=compute, **solver_kwargs)
+	b.add_solver(optimizer, solver=f'opt_{label}', fit_parameters=fit_twigs, overwrite=True, 
+			  				progress_every_niters=saveIterProgress, compute=compute, **solver_kwargs)
 	if export:
 		if not os.path.exists('external-jobs'):
 			os.mkdir('external-jobs')

@@ -61,7 +61,7 @@ def __matchAnyTwig(twig: str, twigs_list: list[str]) -> str:
 		
 	return None
 
-def printFittedVals(b: phoebe.Bundle, solution: str, adopt_twigs: list[str] = None, units: dict[str, u.Unit] = {}):
+def printFittedVals(b: phoebe.Bundle, solution: str, adopt_twigs: list[str] = None, units: dict[str, u.Unit] = {'incl': u.degree}):
 	for twig, value, unit in zip(b.get_value('fitted_twigs', solution=solution),
 								b.get_value('fitted_values', solution=solution),
 								b.get_value('fitted_units', solution=solution)):
@@ -191,35 +191,39 @@ def abilitateFeatures(b: phoebe.Bundle, *enableFeatures: list[str]):
 		else:
 			b.disable_feature(d)
 
-def plotModelResidualsFigsize(b: phoebe.Bundle, figsize: tuple[float, float], datasetGroups: list[list[str] | str], model: str, phase=True, scale_max_flux=True,
+def plotModelResidualsFigsize(b: phoebe.Bundle, figsize: tuple[float, float], model: str, dataset_groups: list[list[str] | str] = None, phase=True, scale_max_flux=True,
 							  model_kwargs: dict['str', 'str'] = {}, residuals_kwargs: dict['str', 'str'] = {}, **plot_kwargs) -> None:
-	"""
-	Plots specified model for the datasets given. Plots dataset(s) with model overlay alongside residuals side-by-side.
-	"""
-	defaultPlotKwargs = {
-		'marker': {'dataset': '.'},
-		'color': GAIA_PLOT_COLORS | ZTF_PLOT_COLORS | ZTF_TRIMMED_PLOT_COLORS | ITURBIDE_PLOT_COLORS,
-		'legend': True,
-		'ls': {'model': 'solid'}
-	}
-	for key, defaultVal in defaultPlotKwargs.items():
-		plot_kwargs[key] = plot_kwargs.get(key, defaultVal)
+    """
+    Plots specified model for the datasets given. Plots dataset(s) with model overlay alongside residuals side-by-side.
+    """
+    defaultPlotKwargs = {
+        'marker': {'dataset': '.'},
+        # 'color': GAIA_PLOT_COLORS | ZTF_PLOT_COLORS | ZTF_TRIMMED_PLOT_COLORS | ITURBIDE_PLOT_COLORS,
+        'color': ITURBIDE_PLOT_COLORS,
+        'legend': True,
+        'ls': {'model': 'solid'}
+    }
+    for key, defaultVal in defaultPlotKwargs.items():
+        plot_kwargs[key] = plot_kwargs.get(key, defaultVal)
 
-	if type(datasetGroups[0]) is str:
-		scale_max_flux = False
+    if dataset_groups is None:
+        dataset_groups = b.filter(kind='lc').datasets
+	
+    if type(dataset_groups[0]) is str:
+        scale_max_flux = False
 
-	residuals_kwargs['marker'] = '.'
+    residuals_kwargs['marker'] = '.'
 
-	for datasets in datasetGroups:
-		maxFlux = 0
-		if scale_max_flux:
-			for d in datasets:
-				maxFlux = max([maxFlux, max(b.get_value(qualifier='fluxes', context='dataset', dataset=d))])
-			maxFluxScale = 1 + 0.17*(len(datasets))
+    for datasets in dataset_groups:
+        maxFlux = 0
+        if scale_max_flux:
+            for d in datasets:
+                maxFlux = max([maxFlux, max(b.get_value(qualifier='fluxes', context='dataset', dataset=d))])
+            maxFluxScale = 1 + 0.17*(len(datasets))
 
-		fig = plt.figure(figsize=figsize)
-		b.plot(x=('phase' if phase else 'times'), model=model, dataset=datasets, axorder=1, fig=fig, s={'dataset':0.008, 'model': 0.01}, ylim=(None, maxFluxScale*maxFlux if scale_max_flux else None), **(plot_kwargs | model_kwargs))
-		b.plot(x=('phase' if phase else 'times'), y='residuals', model=model, dataset=datasets, axorder=2, fig=fig, subplot_grid=(1,2), s=0.008, show=True, **(plot_kwargs | residuals_kwargs))
+        fig = plt.figure(figsize=figsize)
+        b.plot(x=('phase' if phase else 'times'), model=model, dataset=datasets, axorder=1, fig=fig, s={'dataset':0.008, 'model': 0.01}, ylim=(None, maxFluxScale*maxFlux if scale_max_flux else None), **(plot_kwargs | model_kwargs))
+        b.plot(x=('phase' if phase else 'times'), y='residuals', model=model, dataset=datasets, axorder=2, fig=fig, subplot_grid=(1,2), s=0.008, show=True, **(plot_kwargs | residuals_kwargs))
 
 def exportCompute(b: phoebe.Bundle, model: str, datasets: list[str], subfolder: str = None, **compute_kwargs) -> None:
 	if not os.path.exists("external-compute"):
